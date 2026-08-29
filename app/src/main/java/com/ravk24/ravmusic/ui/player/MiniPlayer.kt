@@ -34,7 +34,6 @@ import com.ravk24.ravmusic.playback.NowPlaying
 import com.ravk24.ravmusic.playback.PlayerState
 import com.ravk24.ravmusic.ui.components.AppIcons
 import com.ravk24.ravmusic.ui.components.UNKNOWN_ARTIST_LABEL
-import com.ravk24.ravmusic.ui.components.artGradient
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 
 /**
@@ -107,11 +106,6 @@ private fun MiniPlayerContent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(artGradient(now.songId), RoundedCornerShape(8.dp)),
-            )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = now.title,

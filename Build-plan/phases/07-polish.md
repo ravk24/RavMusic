@@ -33,7 +33,7 @@ Make it feel finished: the edges, the empty states, the settings, the icon.
 - Motion: mini player ↔ Now Playing expand/collapse, selection-mode top-bar transition
 - Drag-select range in multi-select (spec F2 stretch goal) — **in scope**, done
 - ~~App icon~~ — **done early** during Phase 1 from the supplied `RavMusic-icon.png` (decision D-14)
-- ~~Optional: embedded album art extraction~~ — **deferred** by the user on 2026-08-29 (decision D-02 stands)
+- ~~Optional: embedded album art extraction~~ — **dropped for good** on 2026-08-29 (decision D-56)
 
 ## Out of scope
 Equaliser, widgets, Android Auto, Wear OS, tag editing (spec **F9**).

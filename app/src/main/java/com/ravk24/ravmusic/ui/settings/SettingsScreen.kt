@@ -51,7 +51,7 @@ import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 
 /**
  * Settings (artboard 1g): theme override, the "Skip short audio" threshold, the library info line
- * with Rescan, and the privacy footer. Everything is read from and written through [settings]
+ * with Rescan, and the "Built by" footer. Everything is read from and written through [settings]
  * (design D4 of `polish`); Rescan is the same refresh as pull-to-refresh.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -178,9 +178,9 @@ fun SettingsScreen(
             Spacer(Modifier.height(40.dp))
             Spacer(Modifier.weight(1f, fill = true))
             Text(
-                text = "v$versionName\nNo INTERNET permission — this app cannot go online.",
+                text = "v$versionName\nBuilt by Ravi Kant",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outlineVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()

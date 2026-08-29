@@ -13,7 +13,7 @@ The full-screen player (artboard 1f / 1k) with seek, shuffle, repeat, and the qu
 (spec **F5**, rest of **F7**).
 
 ## In scope
-- Expand from the mini player; large gradient art, title, artist, "Playing from: <source>"
+- Expand from the mini player; title and artist (the gradient art was removed later, D-56), title, artist, "Playing from: <source>"
 - Seek bar with elapsed / total
 - Controls: shuffle toggle — prev — play/pause (large) — next — repeat cycle (Off → All → One)
 - `player.shuffleModeEnabled` / `player.repeatMode` wired through the `MediaController`; state shown in

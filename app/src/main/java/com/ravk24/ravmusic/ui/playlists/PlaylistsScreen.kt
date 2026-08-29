@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -43,14 +44,13 @@ import androidx.compose.ui.unit.dp
 import com.ravk24.ravmusic.data.model.Playlist
 import com.ravk24.ravmusic.ui.components.AppIcons
 import com.ravk24.ravmusic.ui.components.EmptyState
-import com.ravk24.ravmusic.ui.components.artGradient
 import com.ravk24.ravmusic.ui.components.formatTotalDuration
 import com.ravk24.ravmusic.ui.components.playlistCountLabel
 import com.ravk24.ravmusic.ui.components.songCountLabel
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 
 /**
- * Playlists home (design canvas artboard 1a): a two-column grid of gradient-art cards, a "+"
+ * Playlists home (design canvas artboard 1a): a two-column grid of playlist cards, a "+"
  * FAB, and the overflow menu that is the app's only route to Settings.
  */
 @Composable
@@ -175,7 +175,7 @@ fun PlaylistsScreen(
     }
 }
 
-/** One grid tile: 104 dp gradient band, name, "N songs · 2h 58m". */
+/** One grid tile: name and "N songs · 2h 58m" on a bordered surface. */
 @Composable
 fun PlaylistCard(
     playlist: Playlist,
@@ -190,13 +190,13 @@ fun PlaylistCard(
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), shape)
             .clickable(onClick = onClick),
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(104.dp)
-                .background(artGradient(playlist.id)),
-        )
-        Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 12.dp)) {
+                .heightIn(min = 88.dp)
+                .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.Center,
+        ) {
             Text(
                 text = playlist.name,
                 style = MaterialTheme.typography.bodyLarge,

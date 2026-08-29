@@ -25,6 +25,10 @@ used to touch them), play/pause is the blurple accent with a white icon, the fou
 28 dp icon size, and the chips are smaller (`labelMedium`, 14 dp icons) with theme-token colours when the
 sleep timer is active. Regression test `NowPlayingScreenTest.shortScreen_keepsChipsBelowTheControls`.
 
+**1.0.2 (versionCode 3), 2026-08-29:** album art is out for good (D-56) — every gradient placeholder removed
+(Now Playing, mini player, playlist cards, playlist header, add-to-playlist sheet); the Settings footer now
+reads the version and "Built by Ravi Kant" in the secondary-text colour (D-57).
+
 ## Goal
 A signed release APK on the phone, and a repeatable way to update it.
 

@@ -34,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ravk24.ravmusic.data.model.Playlist
 import com.ravk24.ravmusic.ui.components.AppIcons
-import com.ravk24.ravmusic.ui.components.artGradient
 import com.ravk24.ravmusic.ui.components.songCountLabel
 
 /** New / Rename: a single trimmed, non-blank name. Confirm is disabled until the name is valid. */
@@ -164,11 +163,6 @@ fun AddToPlaylistSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .background(artGradient(playlist.id), RoundedCornerShape(10.dp)),
-                        )
                         Column {
                             Text(
                                 text = playlist.name,

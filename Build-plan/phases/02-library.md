@@ -22,7 +22,7 @@ Show the user's real songs, grouped by the folders they live in (spec **F1**).
   `AppContainer`; Activity-scoped `LibraryViewModel`
 
 ## Out of scope
-Playback, multi-select, playlists, album art.
+Playback, multi-select, playlists.
 
 ## Capabilities
 `folder-browser` (new)

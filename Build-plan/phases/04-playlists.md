@@ -23,7 +23,7 @@ The main play unit, saved locally, plus the multi-select flow that is the whole 
   playlists + "New playlist"; selection survives scrolling, not navigation
 - Playlist CRUD: create (dialog), rename, delete (confirm); duplicate warning ("3 already in this
   playlist — add anyway / skip")
-- Playlists home grid (artboard 1a) with gradient art per playlist; FAB "+"
+- Playlists home grid (artboard 1a) with name and song count per playlist (the gradient tile was removed later, D-56); FAB "+"
 - Playlist detail (artboard 1e): header (name, count, total duration), **Shuffle play** + Play,
   drag-handle reorder, swipe-to-remove, currently-playing highlight, greyed missing-file rows + "clean up"
 

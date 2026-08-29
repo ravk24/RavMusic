@@ -20,7 +20,7 @@ plays, with a mini player docked above the bottom nav (spec **F4**, part of **F7
 - Tap-to-play from folder detail: ad-hoc queue = that folder's songs from the tapped one
 - Queue *source* tracked ("Playing from: <folder/playlist>") for Now Playing later
 - Media3 default notification, lockscreen, headset buttons, audio focus, `AUDIO_BECOMING_NOISY` → pause
-- Mini player: art thumbnail (gradient), title, artist, play/pause, thin progress line; tap expands
+- Mini player: title/artist, title, artist, play/pause, thin progress line; tap expands
   (stub until phase 5), swipe-away stops and clears the queue
 - Missing-file handling at playback time: a song whose file no longer opens is skipped to the next one
   (decision D-26 — replaces the original "pre-filter at queue-build time" idea)

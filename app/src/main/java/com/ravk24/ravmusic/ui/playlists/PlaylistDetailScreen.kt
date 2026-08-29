@@ -42,13 +42,12 @@ import com.ravk24.ravmusic.data.model.Playlist
 import com.ravk24.ravmusic.data.model.PlaylistTrack
 import com.ravk24.ravmusic.ui.components.AppIcons
 import com.ravk24.ravmusic.ui.components.EmptyState
-import com.ravk24.ravmusic.ui.components.artGradient
 import com.ravk24.ravmusic.ui.components.formatTotalDuration
 import com.ravk24.ravmusic.ui.components.songCountLabel
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 
 /**
- * Playlist detail (design canvas artboard 1e): art, name, totals, Shuffle play / Play, the
+ * Playlist detail (design canvas artboard 1e): name, totals, Shuffle play / Play, the
  * reorderable track list, and Rename / Delete in the overflow. Pushed above the tabs.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -133,11 +132,6 @@ fun PlaylistDetailScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(92.dp)
-                        .background(artGradient(playlist?.id ?: 0L), RoundedCornerShape(14.dp)),
-                )
                 Column {
                     Text(
                         text = name,

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,9 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import android.os.SystemClock
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -52,7 +49,6 @@ import com.ravk24.ravmusic.playback.SLEEP_EXTEND_MS
 import com.ravk24.ravmusic.playback.SleepTimerState
 import com.ravk24.ravmusic.ui.components.AppIcons
 import com.ravk24.ravmusic.ui.components.UNKNOWN_ARTIST_LABEL
-import com.ravk24.ravmusic.ui.components.artGradient
 import com.ravk24.ravmusic.ui.components.formatDuration
 import com.ravk24.ravmusic.ui.components.formatRemaining
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
@@ -144,25 +140,9 @@ fun NowPlayingScreen(
             }
         }
 
-        // The art takes whatever height is left and shrinks first on short screens, so the
-        // transport row and the chips below always keep their room.
-        Box(
-            modifier = Modifier
-                .weight(3f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            // No fillMaxWidth here: a fixed min width would stop aspectRatio from fitting the height.
-            Box(
-                modifier = Modifier
-                    .widthIn(max = 320.dp)
-                    .aspectRatio(1f)
-                    .background(artGradient(now?.songId ?: 0L), RoundedCornerShape(24.dp))
-                    .testTag("np_art"),
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
+        // Free space above the song details keeps the controls anchored to the lower half;
+        // it shrinks first on short screens so the transport row and the chips keep their room.
+        Spacer(modifier = Modifier.weight(1f))
 
         Text(
             text = now?.title ?: "",

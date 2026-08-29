@@ -83,14 +83,11 @@ class NowPlayingScreenTest {
         fun bounds(tag: String) = composeRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
         val host = bounds("np_short_host")
         val origin = bounds("np_origin")
-        val art = bounds("np_art")
         val title = bounds("np_title")
         val button = bounds("np_play_pause")
         val chip = bounds("np_queue_chip")
         val density = composeRule.density.density
-        assertTrue("art ${art.top} must start below the origin line ${origin.bottom}", art.top >= origin.bottom)
-        assertTrue("title ${title.top} must start below the art ${art.bottom}", title.top >= art.bottom)
-        assertTrue("art must be square: $art", kotlin.math.abs(art.width - art.height) < 1f)
+        assertTrue("title ${title.top} must start below the origin line ${origin.bottom}", title.top >= origin.bottom)
         assertTrue("chip top ${chip.top} must sit below the button ${button.bottom}", chip.top >= button.bottom + 8 * density)
         assertTrue("chip bottom ${chip.bottom} must be inside the host ${host.bottom}", chip.bottom <= host.bottom)
         composeRule.onNodeWithTag("np_queue_chip").assertIsDisplayed()

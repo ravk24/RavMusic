@@ -136,12 +136,11 @@ Plus `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_MEDIA_PLAYBACK` (declared in man
 ### F7. Now Playing + Mini Player
 
 **Mini player** (persistent, docked above bottom of every screen while something is loaded):
-- Album art thumbnail (or placeholder), title, artist, play/pause button
+- Title, artist, play/pause button (no album art — D-56)
 - Progress shown as a thin line at the top of the bar
 - Tap → expands to Now Playing; swipe away → stops playback and clears queue
 
 **Now Playing (full screen):**
-- Large album art (embedded art via MediaStore/metadata retriever, fallback placeholder)
 - Title, artist
 - Seek bar with elapsed / total time
 - Controls row: shuffle toggle — prev — play/pause (big) — next — repeat cycle
@@ -167,7 +166,7 @@ Navigation: bottom nav with 2 tabs (Playlists / Folders) + mini player docked ab
 
 ### F9. Explicitly Out of Scope
 
-- Streaming, downloads, lyrics fetching, scrobbling, album art fetching from internet (no internet, period)
+- Streaming, downloads, lyrics fetching, scrobbling, any album art (none is shown, ever — D-56); no internet, period
 - Equalizer (maybe a later toy, system EQ intent is a cheap option)
 - Widgets, Android Auto, Wear OS
 - Tag editing

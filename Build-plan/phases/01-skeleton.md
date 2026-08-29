@@ -22,7 +22,7 @@ the two-tab bottom navigation, and the audio-permission flow — settled once.
 - Manifest: activity + storage permissions; still **no** `INTERNET`
 
 ## Out of scope (later phases)
-MediaStore, Media3, mini player, Room, persisted theme override, real Settings rows, album art.
+MediaStore, Media3, mini player, Room, persisted theme override, real Settings rows.
 
 ## Capabilities introduced (`openspec/specs/` after archive)
 `app-shell`, `theme`, `audio-permission`

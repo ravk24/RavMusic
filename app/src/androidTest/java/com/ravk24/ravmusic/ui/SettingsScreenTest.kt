@@ -59,6 +59,8 @@ class SettingsScreenTest {
         composeRule.onNodeWithText("Off").assertIsDisplayed()
         composeRule.onNodeWithText("2 min").assertIsDisplayed()
         composeRule.onNodeWithTag("settings_footer").assertIsDisplayed()
+        composeRule.onNodeWithTag("settings_footer").assertTextContains("Built by Ravi Kant", substring = true)
+        composeRule.onNodeWithText("INTERNET", substring = true).assertDoesNotExist()
     }
 
     @Test

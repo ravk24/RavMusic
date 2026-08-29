@@ -22,7 +22,7 @@ Coming next: sleep timer, settings (theme override, short-audio threshold), poli
 
 ## Screens
 
-Fixed navy / blurple palette with deterministic gradient "album art" per song and playlist, light and dark.
+Fixed navy / blurple palette, light and dark; no album art by design.
 The design canvas the screens follow lives outside the repo; the build order and every settled decision are
 in [`Build-plan/`](Build-plan/README.md).
 

@@ -11,14 +11,14 @@ disagreed or were silent in six places. Resolved as follows.
 ### D-01 Fixed brand palette, not Material You
 - **Decision:** Blurple `#635BFF` single accent, navy `#0A2540` text/dark background, `#0C2E4E` dark
   surfaces, `#80E9FF` dark secondary accent. Dynamic (wallpaper) colour is never applied.
-- **Why:** The mockups are designed around this palette and the "gradient as album art" idea only
-  harmonises against a fixed palette. Spec F8's "dynamic color" line is superseded.
+- **Why:** The mockups are designed around this palette (originally also for the gradient "art" tiles,
+  since removed by D-56). Spec F8's "dynamic color" line is superseded.
 - **Rules out:** `dynamicLightColorScheme` / `dynamicDarkColorScheme`.
 
-### D-02 Gradient art now, embedded album art later
-- **Decision:** Every playlist/song gets a deterministic gradient slice; no `MediaMetadataRetriever` in v1.
-- **Why:** Matches the mockups 1:1, zero decode/cache/memory work, keeps the app light. Embedded-art
-  extraction is a candidate for a later phase.
+### D-02 Gradient art now, embedded album art later — **superseded by D-56 (2026-08-29)**
+- **Decision (historical):** Every playlist/song got a deterministic gradient slice as a stand-in for album
+  art, with embedded-art extraction pencilled in for later. Album art is now permanently out of scope and the
+  gradient placeholders were removed; see D-56.
 
 ### D-03 Settings entry via overflow menu
 - **Decision:** `⋮` on the Playlists header → Settings. Bottom nav stays at exactly two tabs.
@@ -26,7 +26,7 @@ disagreed or were silent in six places. Resolved as follows.
 
 ### D-04 Playlists home is a grid
 - **Decision:** Artboard 1a (grid); 1b (list) dropped.
-- **Why:** Shows the gradient art better; a personal library will not outgrow a grid.
+- **Why:** A grid reads better for a handful of playlists; a personal library will not outgrow it.
 
 ### D-05 No cached library — query MediaStore live
 - **Decision:** No Room table mirroring MediaStore. "Rescan" is simply a re-query.
@@ -171,9 +171,9 @@ disagreed or were silent in six places. Resolved as follows.
 - **Rules out:** an overlay `Box` above the content.
 
 ### D-28 Gradient art helper and current-row highlight
-- **Decision:** `ui/components/GradientArt.kt` maps a seed (song or playlist id) to one of the six mockup
-  gradient pairs (`artGradientIndex`, pure) — the D-02 "gradient as album art" in code. `SongRow` gains
-  `isCurrent` (title in the primary colour, `selected` semantics).
+- **Decision:** `ui/components/GradientArt.kt` mapped a seed (song or playlist id) to one of six gradient
+  pairs — the D-02 placeholder in code; **removed by D-56**. `SongRow` gains `isCurrent` (title in the
+  primary colour, `selected` semantics), which stays.
 
 ### D-29 Manifest: `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `WAKE_LOCK`; no `POST_NOTIFICATIONS`
 - **Decision:** All three are install-time permissions; the service declares
@@ -342,3 +342,17 @@ disagreed or were silent in six places. Resolved as follows.
 - **Decision:** Media3 declares it for its bandwidth meter; the app plays local files only and has no
   `INTERNET`, so the permission is stripped with `tools:node="remove"`. The release APK lists exactly
   the storage and foreground-service permissions.
+
+## 2026-08-29 — No album art (`openspec/changes/no-album-art/`)
+
+### D-56 No album art, ever
+- **Decision:** Album art is permanently out of scope: no embedded-art extraction, no `MediaMetadataRetriever`,
+  and no placeholder tiles. `ui/components/GradientArt.kt` and every gradient box (Now Playing, mini
+  player, playlist cards, playlist header, add-to-playlist sheet) were removed; layouts close up around the
+  text. Supersedes D-02 and the helper half of D-28.
+- **Why:** The user decided it; a placeholder that promises a feature that is not coming is worse than none.
+
+### D-57 Settings footer is a maker credit in the secondary-text colour
+- **Decision:** The footer reads the version and "Built by Ravi Kant" in `onSurfaceVariant` (Slate on white,
+  SlateDark on navy) instead of the privacy line in `outlineVariant`, which was a border tone and barely
+  legible in dark mode. The no-`INTERNET` guarantee is unchanged and lives in the manifest and README.
