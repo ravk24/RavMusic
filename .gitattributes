@@ -1,0 +1,8 @@
+# Normalise line endings; keep POSIX scripts and binaries intact regardless of core.autocrlf
+* text=auto
+gradlew text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.jar binary
+*.webp binary
+*.png binary
