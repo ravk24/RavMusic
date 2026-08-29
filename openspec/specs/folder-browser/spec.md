@@ -32,18 +32,22 @@ Each song SHALL belong to exactly one folder: the directory the file is stored i
 - **THEN** the folder list shows the same folder names and counts as on Android 10 or later
 
 ### Requirement: Short audio is hidden
-The library SHALL exclude audio whose duration is below a minimum length of 30 seconds. The threshold SHALL be a single constant in code in this change.
+The library SHALL exclude audio whose duration is below the "Skip short audio" threshold chosen in Settings (default 30 seconds; Off hides nothing), as specified by the `settings` capability. The threshold SHALL be applied when the library is queried, and the loaded library SHALL record the threshold it was queried with.
 
 #### Scenario: Clip under the threshold
-- **WHEN** an audio file of 5 seconds flagged as music is present in the media index
+- **WHEN** an audio file of 5 seconds flagged as music is present in the media index and the threshold is 30 s
 - **THEN** it is not counted in any folder and does not appear in any song list
 
 #### Scenario: Track above the threshold
-- **WHEN** an audio file of 35 seconds flagged as music is present in the media index
+- **WHEN** an audio file of 35 seconds flagged as music is present in the media index and the threshold is 30 s
+- **THEN** it appears in its folder's song list and count
+
+#### Scenario: Threshold off
+- **WHEN** the threshold is Off and the same 5-second file is present
 - **THEN** it appears in its folder's song list and count
 
 ### Requirement: Folder list
-The Folders tab SHALL list every folder that contains at least one song, sorted by name (case-insensitive), each row showing the folder name and its song count. The header SHALL show the title "Folders" and the total number of songs in the library. A footer SHALL state that pull-to-refresh is available and that short audio is hidden.
+The Folders tab SHALL list every folder that contains at least one song, sorted by name (case-insensitive), each row showing the folder name and its song count. The header SHALL show the title "Folders" and the total number of songs in the library. A footer SHALL state that pull-to-refresh is available and, unless the threshold is Off, that audio under the applied threshold is hidden.
 
 #### Scenario: Folder rows
 - **WHEN** the library contains songs in folders "Download" (1 song), "Music" (2 songs) and "Rock" (1 song)
@@ -52,6 +56,10 @@ The Folders tab SHALL list every folder that contains at least one song, sorted 
 #### Scenario: Alphabetical ignores case
 - **WHEN** folders named "beta" and "Alpha" both contain songs
 - **THEN** "Alpha" is listed before "beta"
+
+#### Scenario: Footer reflects the threshold
+- **WHEN** the threshold is 15 s
+- **THEN** the footer reads "Pull to refresh · audio under 15s hidden"; with the threshold Off it reads "Pull to refresh"
 
 ### Requirement: Pull-to-refresh re-queries the library
 Pulling down on the folder list SHALL re-query the media index. While the refresh is in progress the previous list SHALL remain visible with a refresh indicator; when it completes the list SHALL reflect the new result.
@@ -65,7 +73,7 @@ Pulling down on the folder list SHALL re-query the media index. While the refres
 - **THEN** the folders already shown remain visible until the new result replaces them
 
 ### Requirement: Folder detail
-Tapping a folder SHALL open a detail screen pushed above the tabs, titled with the folder name and showing its song count, listing that folder's songs sorted by title (case-insensitive). Each row SHALL show the title, the artist or "Unknown artist" when the file has no artist tag, and the duration formatted as minutes:seconds (hours:minutes:seconds when an hour or longer). The screen SHALL provide a back affordance; back (affordance or system back) SHALL return to the Folders tab with the tab selected. Tapping a song SHALL start playback of the folder from that song, as specified by the `playback` capability, and the row of the song currently playing SHALL be visually highlighted. Long-pressing a song SHALL enter selection mode as specified by the `multi-select` capability; while selecting, tapping a row toggles its selection instead of playing.
+Tapping a folder SHALL open a detail screen pushed above the tabs, titled with the folder name and showing its song count, listing that folder's songs sorted by title (case-insensitive). Each row SHALL show the title, the artist or "Unknown artist" when the file has no artist tag, and the duration formatted as minutes:seconds (hours:minutes:seconds when an hour or longer). The screen SHALL provide a back affordance; back (affordance or system back) SHALL return to the Folders tab with the tab selected. Tapping a song SHALL start playback of the folder from that song, as specified by the `playback` capability, and the row of the song currently playing SHALL be visually highlighted. Long-pressing a song SHALL enter selection mode as specified by the `multi-select` capability; while selecting, tapping a row toggles its selection instead of playing. A folder with no songs SHALL show an empty state with a "Back to folders" action. The library SHALL be re-queried when the app returns to the foreground, so songs deleted while the app was away disappear from the list (and the folder, if emptied, from the Folders tab) without a manual rescan.
 
 #### Scenario: Open a folder
 - **WHEN** the user taps the "Rock" row containing "Beta Song" (41 s, no artist tag)
@@ -91,8 +99,16 @@ Tapping a folder SHALL open a detail screen pushed above the tabs, titled with t
 - **WHEN** the user long-presses "Glass Rain"
 - **THEN** selection mode starts with "Glass Rain" selected and nothing starts playing
 
+#### Scenario: Empty folder
+- **WHEN** the user opens a folder whose songs have all been removed
+- **THEN** an empty state titled "Nothing here yet" with a "Back to folders" action is shown, and the action returns to the Folders tab
+
+#### Scenario: File deleted while the app was away
+- **WHEN** the user leaves the app, a song's file is deleted and the media index updated, and the user returns to the open folder detail
+- **THEN** the song's row is gone and the count is one lower, without pulling to refresh
+
 ### Requirement: Empty library state
-When the permission is granted but the query returns no songs, the Folders tab SHALL show an empty state that says no music was found, suggests copying music into a folder such as /Music, notes that short audio is hidden, and offers a "Rescan" action that re-queries the library.
+When the permission is granted but the query returns no songs, the Folders tab SHALL show an empty state that says no music was found, suggests copying music into a folder such as /Music, notes that audio under the applied threshold is hidden (omitted when the threshold is Off), and offers a "Rescan" action that re-queries the library.
 
 #### Scenario: No music on the device
 - **WHEN** the audio permission is granted and the media index contains no music above the threshold
