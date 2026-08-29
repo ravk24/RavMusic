@@ -34,6 +34,7 @@ class LibraryNavigationTest {
 
     private var permission by mutableStateOf<PermissionState>(PermissionState.Granted)
     private var library by mutableStateOf<LibraryState>(FakeLibrary.loaded())
+    private val playlists = FakePlaylistsHost()
 
     private fun setShell() {
         composeRule.setContent {
@@ -46,7 +47,7 @@ class LibraryNavigationTest {
                     onRefreshLibrary = {},
                     playerState = PlayerState(),
                     player = PlayerActions.none(),
-                    playlists = FakePlaylistsHost(),
+                    playlists = playlists,
                 )
             }
         }
@@ -101,5 +102,17 @@ class LibraryNavigationTest {
         openRock()
         library = LibraryState.Idle
         composeRule.onNodeWithTag("folder_detail_empty").assertIsDisplayed()
+    }
+
+    @Test
+    fun emptyPlaylist_openFoldersLandsOnTheFoldersTab() {
+        val id = playlists.seed("Road trip")
+        setShell()
+        composeRule.onNodeWithTag("playlist_card_$id").performClick()
+        composeRule.onNodeWithTag("playlist_empty").assertIsDisplayed()
+        composeRule.onNodeWithTag("playlist_empty_action").performClick()
+        composeRule.onNodeWithTag("screen_folders").assertIsDisplayed()
+        composeRule.onNodeWithTag("tab_folders").assertIsSelected()
+        composeRule.onNodeWithTag("bottom_bar").assertIsDisplayed()
     }
 }

@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.ravk24.ravmusic.data.model.Playlist
 import com.ravk24.ravmusic.data.model.PlaylistTrack
 import com.ravk24.ravmusic.ui.components.AppIcons
+import com.ravk24.ravmusic.ui.components.EmptyState
 import com.ravk24.ravmusic.ui.components.artGradient
 import com.ravk24.ravmusic.ui.components.formatTotalDuration
 import com.ravk24.ravmusic.ui.components.songCountLabel
@@ -66,6 +67,7 @@ fun PlaylistDetailScreen(
     onMove: (from: Int, to: Int) -> Unit,
     onCleanUp: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenFolders: () -> Unit = {},
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var renaming by rememberSaveable { mutableStateOf(false) }
@@ -202,19 +204,15 @@ fun PlaylistDetailScreen(
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             if (tracks.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "No songs yet. Open a folder, long-press songs and add them here.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag("playlist_empty"),
-                    )
-                }
+                EmptyState(
+                    icon = AppIcons.QueueMusic,
+                    title = "No songs yet",
+                    body = "Open a folder, long-press songs to select them, then add them here.",
+                    actionLabel = "Open Folders",
+                    onAction = onOpenFolders,
+                    modifier = Modifier.testTag("playlist_empty"),
+                    actionModifier = Modifier.testTag("playlist_empty_action"),
+                )
             } else {
                 ReorderableTrackList(
                     tracks = tracks,

@@ -19,7 +19,7 @@ class LibraryViewModelTest {
 
     private class CountingScanner : MediaScanner {
         var calls = 0
-        override fun scan(): List<Song> {
+        override fun scan(minDurationMs: Long): List<Song> {
             calls++
             return listOf(
                 Song(1, "content://media/external/audio/media/1", "Song", null, 100_000L, "f", "Folder"),
@@ -57,5 +57,23 @@ class LibraryViewModelTest {
         vm.refresh()
         assertEquals(2, scanner.calls)
         assertTrue(vm.state.value is LibraryState.Loaded)
+    }
+
+    @Test
+    fun `refreshIfLoaded is a no-op before the first load and rescans after it`() = runTest(mainDispatcher.dispatcher) {
+        val scanner = CountingScanner()
+        val vm = viewModel(scanner)
+
+        vm.refreshIfLoaded()
+        assertEquals(0, scanner.calls)
+        assertEquals(LibraryState.Idle, vm.state.value)
+
+        vm.onPermissionChanged(granted = true)
+        vm.refreshIfLoaded()
+        assertEquals(2, scanner.calls)
+
+        vm.onPermissionChanged(granted = false)
+        vm.refreshIfLoaded()
+        assertEquals(2, scanner.calls)
     }
 }

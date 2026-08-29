@@ -2,15 +2,20 @@ package com.ravk24.ravmusic
 
 import android.app.Application
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import com.ravk24.ravmusic.data.db.RavMusicDatabase
 import com.ravk24.ravmusic.data.mediastore.MediaStoreScanner
 import com.ravk24.ravmusic.data.repo.LibraryRepository
 import com.ravk24.ravmusic.data.repo.PlaylistRepository
+import com.ravk24.ravmusic.data.settings.SettingsRepository
 import com.ravk24.ravmusic.playback.PlayerConnection
+import kotlinx.coroutines.flow.first
 
 /**
  * Application entry point. Owns the [AppContainer] so every phase (library, playback,
- * playlists) has a single, obvious place to construct its dependencies. Manual DI by design.
+ * playlists, settings) has a single, obvious place to construct its dependencies. Manual DI by design.
  */
 class RavMusicApp : Application() {
 
@@ -23,14 +28,26 @@ class RavMusicApp : Application() {
     }
 }
 
+/** The one Preferences DataStore file ("settings.preferences_pb"); a process-wide singleton by contract. */
+private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
 /** App-wide dependency container: one instance per process, created lazily on first use. */
 class AppContainer(context: Context) {
 
     private val appContext = context.applicationContext
 
-    /** The in-memory library (last MediaStore query). App-scoped so it outlives screens and tabs. */
+    /** Persisted preferences: theme override and the short-audio threshold. */
+    val settingsRepository: SettingsRepository by lazy { SettingsRepository(appContext.settingsDataStore) }
+
+    /**
+     * The in-memory library (last MediaStore query). App-scoped so it outlives screens and tabs.
+     * Every query reads the current threshold from Settings (design D2 of `polish`).
+     */
     val libraryRepository: LibraryRepository by lazy {
-        LibraryRepository(MediaStoreScanner(appContext.contentResolver))
+        LibraryRepository(
+            scanner = MediaStoreScanner(appContext.contentResolver),
+            minDurationMs = { settingsRepository.minDurationMs.first() },
+        )
     }
 
     /** The UI's client of the playback service. One per process; connected by the player ViewModel. */

@@ -15,13 +15,17 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,7 +35,9 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.ravk24.ravmusic.NoSettings
 import com.ravk24.ravmusic.PlaylistsHost
+import com.ravk24.ravmusic.SettingsHost
 import com.ravk24.ravmusic.data.model.Song
 import com.ravk24.ravmusic.data.model.missingTrackIds
 import com.ravk24.ravmusic.data.repo.LibraryState
@@ -76,11 +82,22 @@ fun AppNavigation(
     player: PlayerActions,
     playlists: PlaylistsHost,
     modifier: Modifier = Modifier,
+    settings: SettingsHost = NoSettings,
 ) {
     val backStack = rememberNavBackStack(Playlists)
     val playlistsGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
     val foldersListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+
+    // A skipped file is announced once per notice (design D5 of `polish`); the guard survives rotation.
+    var shownSkipSeq by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(playerState.skipped?.seq) {
+        val notice = playerState.skipped ?: return@LaunchedEffect
+        if (notice.seq <= shownSkipSeq) return@LaunchedEffect
+        shownSkipSeq = notice.seq
+        snackbar.showSnackbar("Couldn't play ${notice.title} — skipped")
+    }
 
     val current: NavKey = backStack.lastOrNull() ?: Playlists
     val showBottomBar = current in TabRoutes
@@ -96,6 +113,7 @@ fun AppNavigation(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbar, modifier = Modifier.testTag("shell_snackbar")) },
         bottomBar = {
             // Mini player above the navigation bar on tabs; alone at the bottom on detail screens,
             // where it takes over the navigation-bar inset the NavigationBar would otherwise consume.
@@ -156,6 +174,9 @@ fun AppNavigation(
                     rememberSaveableStateHolderNavEntryDecorator(),
                     rememberViewModelStoreNavEntryDecorator(),
                 ),
+                transitionSpec = NavTransitions.push,
+                popTransitionSpec = NavTransitions.pop,
+                predictivePopTransitionSpec = NavTransitions.predictivePop,
                 entryProvider = entryProvider {
                     entry<Playlists> {
                         AudioPermissionGate(
@@ -235,9 +256,13 @@ fun AppNavigation(
                             onRemoveTrack = playlists::removeTrack,
                             onMove = { from, to -> playlists.move(key.playlistId, from, to) },
                             onCleanUp = { playlists.cleanUp(key.playlistId, missing) },
+                            onOpenFolders = {
+                                backStack.removeLastOrNull()
+                                selectTab(Folders)
+                            },
                         )
                     }
-                    entry<NowPlaying> {
+                    entry<NowPlaying>(metadata = NavTransitions.playerMetadata) {
                         // The screen has nothing to show once the queue is gone: close it.
                         LaunchedEffect(playerState.hasQueue) {
                             if (!playerState.hasQueue && backStack.lastOrNull() == NowPlaying) backStack.removeLastOrNull()
@@ -249,7 +274,12 @@ fun AppNavigation(
                         )
                     }
                     entry<Settings> {
-                        SettingsScreen(onBack = { backStack.removeLastOrNull() })
+                        SettingsScreen(
+                            onBack = { backStack.removeLastOrNull() },
+                            settings = settings,
+                            libraryState = libraryState,
+                            onRescan = onRefreshLibrary,
+                        )
                     }
                 },
             )

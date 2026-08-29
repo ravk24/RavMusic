@@ -280,3 +280,45 @@ disagreed or were silent in six places. Resolved as follows.
 ### D-46 A manual pause does not cancel the timer
 - **Decision:** If the user pauses before the countdown ends, the fade still runs and the final pause is a
   no-op; the volume is restored either way. Extend and cancel restore the volume immediately.
+
+## 2026-08-29 — Polish design (`openspec/changes/polish/design.md`)
+
+### D-47 Settings are two keys in Preferences DataStore
+- **Decision:** `SettingsRepository(DataStore<Preferences>)` in `data/settings/` exposes `themeMode` and
+  `minDurationMs` as flows with defaults (System, 30 s) and suspend setters; `AppContainer` owns the
+  single `preferencesDataStore("settings")`. JVM tests run the real store on a temp file.
+- **Rules out:** a Room table, `SharedPreferences`.
+
+### D-48 The short-audio threshold is read at scan time
+- **Decision:** `MediaScanner.scan(minDurationMs)`; `LibraryRepository` takes a `suspend () -> Long`
+  provider and calls it inside every `refresh()`; `LibrarySnapshot.minDurationMs` records what was applied
+  so the Folders footer and hint describe the real query. `SettingsViewModel.setMinDuration` persists,
+  then refreshes once.
+
+### D-49 The theme override is resolved above the navigation graph
+- **Decision:** `MainActivity` collects `themeMode`, resolves it against `isSystemInDarkTheme()`, passes it
+  to `RavMusicTheme(darkTheme)`, and re-invokes `enableEdgeToEdge` with matching `SystemBarStyle`s on
+  every change so bar icons follow the palette. One frame in the system palette on a cold start is
+  accepted rather than blocking `onCreate` on a disk read.
+
+### D-50 Deleted files: re-query on resume, and a broadcast skip notice
+- **Decision:** `AppRoot`'s `ON_RESUME` effect calls `LibraryViewModel.refreshIfLoaded()` (never the first
+  query); files can only vanish while the app is away, so no `ContentObserver`. `MissingFileSkipper`
+  broadcasts `PlaybackEvents.SKIPPED_MISSING` with the title before skipping; `PlayerConnection` maps it
+  to `PlayerState.skipped: SkipNotice(title, seq)` and the shell shows one snackbar per `seq`.
+- **Why:** the controller's `onPlayerError` can be coalesced away by the session; a custom command is an
+  explicit event on the same channel family as D-44.
+
+### D-51 Motion is declared at the `NavDisplay`
+- **Decision:** `NavTransitions` supplies `transitionSpec` / `popTransitionSpec` /
+  `predictivePopTransitionSpec` (260 ms fade + 1/8 horizontal slide; mirrored on pop). The Now Playing
+  entry carries marker metadata and slides up over the current screen (`targetContentZIndex = 1`) and
+  down off it (320 ms). `enableOnBackInvokedCallback` turns on predictive back. The selection bar is an
+  `AnimatedContent` over `selecting`.
+- **Rules out:** shared-element transitions, custom `SceneStrategy`s.
+
+### D-52 Drag-select is a pure range plus one list-level gesture in the Initial pass
+- **Decision:** `rangeSelection(base, ids, anchor, current)` and `rowIndexAt(y, rows)` are pure and
+  JVM-tested. `Modifier.dragSelect` on the `LazyColumn` waits out the long-press timeout itself, reads
+  moves in `PointerEventPass.Initial` (so the rows' `combinedClickable` keeps working) and consumes them
+  so the list does not scroll. No auto-scroll at the edges in this change.

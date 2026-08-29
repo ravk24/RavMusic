@@ -9,7 +9,9 @@ import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,10 +42,26 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
     /** Sleep-timer state as last published by the service through session extras. */
     private var timerState: SleepTimerState = SleepTimerState.Off
 
+    /** The last skip notice broadcast by the service; `seq` makes repeats distinguishable. */
+    private var skipped: SkipNotice? = null
+
     private val controllerListener = object : MediaController.Listener {
         override fun onExtrasChanged(controller: MediaController, extras: Bundle) {
             timerState = SleepTimerCommands.fromExtras(extras)
             publish(controller)
+        }
+
+        override fun onCustomCommand(
+            controller: MediaController,
+            command: SessionCommand,
+            args: Bundle,
+        ): ListenableFuture<SessionResult> {
+            if (command.customAction == PlaybackEvents.SKIPPED_MISSING) {
+                val title = args.getString(PlaybackEvents.ARG_TITLE).orEmpty().ifBlank { "this song" }
+                skipped = SkipNotice(title, (skipped?.seq ?: 0) + 1)
+                publish(controller)
+            }
+            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
         }
     }
 
@@ -191,6 +209,7 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
         future = null
         pending.clear()
         timerState = SleepTimerState.Off
+        skipped = null
         _state.value = PlayerState()
     }
 
@@ -231,6 +250,7 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
             queue = queue,
             queueIndex = order.currentPosition,
             sleepTimer = timerState,
+            skipped = skipped,
         )
     }
 

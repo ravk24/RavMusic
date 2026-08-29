@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -15,6 +16,7 @@ import com.ravk24.ravmusic.playback.NowPlaying
 import com.ravk24.ravmusic.playback.PlayerActions
 import com.ravk24.ravmusic.playback.PlayerState
 import com.ravk24.ravmusic.playback.QueueEntry
+import com.ravk24.ravmusic.playback.SkipNotice
 import com.ravk24.ravmusic.ui.navigation.AppNavigation
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 import org.junit.Assert.assertEquals
@@ -95,6 +97,23 @@ class NowPlayingNavigationTest {
         composeRule.onNodeWithTag("screen_now_playing").assertDoesNotExist()
         composeRule.onNodeWithTag("screen_playlists").assertIsDisplayed()
         composeRule.onNodeWithTag("mini_player").assertDoesNotExist()
+    }
+
+    @Test
+    fun skippedFileShowsANoticeOncePerSeq() {
+        setShell()
+        player = playing.copy(skipped = SkipNotice("gamma", 1))
+        composeRule.onNodeWithText("Couldn't play gamma — skipped").assertIsDisplayed()
+
+        // The same notice again (any other state change) must not re-show it once dismissed.
+        composeRule.mainClock.advanceTimeBy(6_000L)
+        composeRule.waitForIdle()
+        player = player.copy(isPlaying = false)
+        composeRule.onNodeWithText("Couldn't play gamma — skipped").assertDoesNotExist()
+
+        // A new seq is a new event.
+        player = player.copy(skipped = SkipNotice("gamma", 2))
+        composeRule.onNodeWithText("Couldn't play gamma — skipped").assertIsDisplayed()
     }
 
     @Test

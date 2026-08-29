@@ -19,14 +19,13 @@ import com.ravk24.ravmusic.data.model.normaliseArtist
  */
 class MediaStoreScanner(
     private val resolver: ContentResolver,
-    private val minDurationMs: Long = MIN_SONG_DURATION_MS,
     private val sdkInt: Int = Build.VERSION.SDK_INT,
 ) : MediaScanner {
 
     // DURATION resolves to MediaColumns.DURATION, which the SDK stubs mark as API 29, although
     // the audio column has existed since API 1 (it was AudioColumns.DURATION before).
     @SuppressLint("InlinedApi")
-    override fun scan(): List<Song> {
+    override fun scan(minDurationMs: Long): List<Song> {
         val hasBucketColumns = sdkInt >= Build.VERSION_CODES.Q
         val projection = if (hasBucketColumns) {
             arrayOf(
@@ -50,7 +49,7 @@ class MediaStoreScanner(
             )
         }
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= ?"
-        val selectionArgs = arrayOf(minDurationMs.toString())
+        val selectionArgs = arrayOf(minDurationMs.coerceAtLeast(0L).toString())
         val sortOrder = "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
 
         val cursor: Cursor? = try {

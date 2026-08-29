@@ -74,13 +74,17 @@ class FolderDetailScreenTest {
     }
 
     @Test
-    fun emptyFolder_showsMessage() {
+    fun emptyFolder_showsEmptyStateWithBackAction() {
+        var backs = 0
         composeRule.setContent {
             RavMusicTheme {
-                FolderDetailScreen(folderName = "Gone", songs = emptyList(), onBack = {})
+                FolderDetailScreen(folderName = "Gone", songs = emptyList(), onBack = { backs++ })
             }
         }
         composeRule.onNodeWithTag("folder_detail_empty").assertIsDisplayed()
+        composeRule.onNodeWithText("Nothing here yet").assertIsDisplayed()
         composeRule.onNodeWithTag("folder_detail_subtitle").assertTextEquals("0 songs")
+        composeRule.onNodeWithTag("folder_detail_empty_action").performClick()
+        assertEquals(1, backs)
     }
 }

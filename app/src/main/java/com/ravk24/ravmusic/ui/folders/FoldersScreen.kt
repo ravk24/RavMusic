@@ -22,7 +22,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.ravk24.ravmusic.data.mediastore.MIN_SONG_DURATION_MS
 import com.ravk24.ravmusic.data.model.Folder
 import com.ravk24.ravmusic.data.model.LibrarySnapshot
 import com.ravk24.ravmusic.data.model.Song
@@ -31,9 +30,12 @@ import com.ravk24.ravmusic.data.repo.LibraryState
 import com.ravk24.ravmusic.ui.components.AppIcons
 import com.ravk24.ravmusic.ui.components.EmptyState
 import com.ravk24.ravmusic.ui.components.songCountLabel
+import com.ravk24.ravmusic.ui.components.thresholdLabel
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 
-private val MIN_SONG_SECONDS = MIN_SONG_DURATION_MS / 1000
+/** "audio under 30s hidden" for the footer / hint, or null when the threshold is Off. */
+private fun hiddenNote(minDurationMs: Long): String? =
+    if (minDurationMs > 0L) "audio under ${thresholdLabel(minDurationMs)} hidden" else null
 
 /**
  * Folders tab (design canvas artboard 1c): the library grouped by storage folder, with
@@ -68,7 +70,7 @@ fun FoldersScreen(
                     body = "No audio files were found on this device. Copy music into a folder such as /Music, then rescan.",
                     actionLabel = "Rescan",
                     onAction = onRefresh,
-                    hint = "Audio under $MIN_SONG_SECONDS s is hidden.",
+                    hint = hiddenNote(state.snapshot.minDurationMs)?.let { it.replaceFirstChar(Char::uppercase) + "." },
                     modifier = Modifier.testTag("library_empty"),
                     actionModifier = Modifier.testTag("rescan_button"),
                 )
@@ -143,7 +145,7 @@ private fun FolderList(
             }
             item(key = "footer", contentType = "footer") {
                 Text(
-                    text = "Pull to refresh · audio under ${MIN_SONG_SECONDS}s hidden",
+                    text = listOfNotNull("Pull to refresh", hiddenNote(snapshot.minDurationMs)).joinToString(" · "),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outlineVariant,
                     textAlign = TextAlign.Center,

@@ -29,4 +29,13 @@ class LibraryViewModel(private val repository: LibraryRepository) : ViewModel() 
     fun refresh() {
         viewModelScope.launch { repository.refresh() }
     }
+
+    /**
+     * On resume: re-query only if a library is already showing, so files deleted while the app
+     * was away disappear without a manual rescan (design D5 of `polish`). Never starts the first
+     * query — that is the permission's job.
+     */
+    fun refreshIfLoaded() {
+        viewModelScope.launch { repository.refreshIfLoaded() }
+    }
 }

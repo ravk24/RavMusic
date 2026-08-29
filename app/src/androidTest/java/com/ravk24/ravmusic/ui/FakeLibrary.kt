@@ -1,5 +1,6 @@
 package com.ravk24.ravmusic.ui
 
+import com.ravk24.ravmusic.data.mediastore.MIN_SONG_DURATION_MS
 import com.ravk24.ravmusic.data.model.LibrarySnapshot
 import com.ravk24.ravmusic.data.model.Song
 import com.ravk24.ravmusic.data.model.buildLibrarySnapshot
@@ -26,7 +27,7 @@ object FakeLibrary {
     )
 
     /** Download (1), Music (2), Rock (1) — the spec's "Folder rows" scenario. */
-    fun snapshot(): LibrarySnapshot = buildLibrarySnapshot(
+    fun snapshot(minDurationMs: Long = MIN_SONG_DURATION_MS): LibrarySnapshot = buildLibrarySnapshot(
         listOf(
             song(1, "alpha song", "music", "Music", durationMs = 35_000L),
             song(2, "Glass Rain", "music", "Music", artist = "Hyaline"),
@@ -34,6 +35,7 @@ object FakeLibrary {
             song(4, "gamma", "download", "Download", artist = "Nocturne Ave", durationMs = 3_725_000L),
         ),
         scannedAt = 1L,
+        minDurationMs = minDurationMs,
     )
 
     /** Many folders, one song each, so a list actually scrolls. */

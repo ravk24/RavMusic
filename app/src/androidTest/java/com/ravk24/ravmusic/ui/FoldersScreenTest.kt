@@ -3,6 +3,7 @@ package com.ravk24.ravmusic.ui
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ravk24.ravmusic.data.model.Folder
 import com.ravk24.ravmusic.data.model.LibrarySnapshot
+import com.ravk24.ravmusic.data.model.buildLibrarySnapshot
 import com.ravk24.ravmusic.data.repo.LibraryState
 import com.ravk24.ravmusic.ui.folders.FoldersScreen
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
@@ -93,6 +95,31 @@ class FoldersScreenTest {
         composeRule.onNodeWithTag("folders_loading").assertIsDisplayed()
         composeRule.onNodeWithText("Folders").assertIsDisplayed()
         composeRule.onNodeWithTag("folders_list").assertDoesNotExist()
+    }
+
+    @Test
+    fun footer_reflectsTheAppliedThreshold() {
+        setScreen(FakeLibrary.loaded(FakeLibrary.snapshot(minDurationMs = 15_000L)))
+        composeRule.onNodeWithTag("folders_footer").assertTextContains("Pull to refresh · audio under 15s hidden")
+    }
+
+    @Test
+    fun footer_omitsTheNoteWhenTheThresholdIsOff() {
+        setScreen(FakeLibrary.loaded(FakeLibrary.snapshot(minDurationMs = 0L)))
+        composeRule.onNodeWithTag("folders_footer").assertTextEquals("Pull to refresh")
+    }
+
+    @Test
+    fun emptyLibrary_hintFollowsTheThreshold() {
+        setScreen(LibraryState.Loaded(buildLibrarySnapshot(emptyList(), 1L, minDurationMs = 60_000L)))
+        composeRule.onNodeWithText("Audio under 1 min hidden.").assertIsDisplayed()
+    }
+
+    @Test
+    fun emptyLibrary_noHintWhenTheThresholdIsOff() {
+        setScreen(LibraryState.Loaded(buildLibrarySnapshot(emptyList(), 1L, minDurationMs = 0L)))
+        composeRule.onNodeWithTag("library_empty").assertIsDisplayed()
+        composeRule.onNodeWithText("hidden", substring = true).assertDoesNotExist()
     }
 
     @Test

@@ -1,15 +1,18 @@
 package com.ravk24.ravmusic
 
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,10 +37,38 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            RavMusicTheme {
-                AppRoot()
+            // The theme override sits above the whole graph (design D3 of `polish`): resolve it
+            // here, restyle the system bars to match, and hand the same host to Settings below.
+            val container = (applicationContext as RavMusicApp).container
+            val settingsViewModel: SettingsViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer { SettingsViewModel(container.settingsRepository, container.libraryRepository) }
+                },
+            )
+            val themeMode by settingsViewModel.themeMode.collectAsStateWithLifecycle()
+            val dark = themeMode.resolve(isSystemInDarkTheme())
+            SystemBars(dark)
+            RavMusicTheme(darkTheme = dark) {
+                AppRoot(settings = settingsViewModel)
             }
         }
+    }
+}
+
+/**
+ * Keeps the system bar icons legible for the palette actually shown: `enableEdgeToEdge` is
+ * documented as safe to call again, and `SystemBarStyle.light/dark` pick the icon colour.
+ */
+@Composable
+private fun SystemBars(dark: Boolean) {
+    val activity = LocalActivity.current as? ComponentActivity ?: return
+    LaunchedEffect(dark) {
+        val style = if (dark) {
+            SystemBarStyle.dark(Color.TRANSPARENT)
+        } else {
+            SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        }
+        activity.enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 }
 
@@ -47,7 +78,7 @@ class MainActivity : ComponentActivity() {
  * player, and hands everything to [AppNavigation].
  */
 @Composable
-private fun AppRoot(viewModel: AppViewModel = viewModel()) {
+private fun AppRoot(settings: SettingsHost, viewModel: AppViewModel = viewModel()) {
     val context = LocalContext.current
     val activity = checkNotNull(LocalActivity.current) { "AppRoot must be hosted in an Activity" }
     val checker = remember(activity) { AndroidPermissionChecker(activity) }
@@ -78,9 +109,11 @@ private fun AppRoot(viewModel: AppViewModel = viewModel()) {
         viewModel.refresh(checker)
     }
 
-    // Re-evaluate on every resume so grants/revocations made in system Settings are honoured.
+    // Re-evaluate on every resume so grants/revocations made in system Settings are honoured, and
+    // re-query a loaded library so files deleted while the app was away disappear (design D5).
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.refresh(checker)
+        libraryViewModel.refreshIfLoaded()
     }
 
     // The library follows the permission: query once granted, forget when it goes away.
@@ -108,5 +141,6 @@ private fun AppRoot(viewModel: AppViewModel = viewModel()) {
         playerState = playerState,
         player = remember(playerViewModel) { playerViewModel.actions() },
         playlists = playlistsViewModel,
+        settings = settings,
     )
 }

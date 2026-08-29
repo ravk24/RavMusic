@@ -1,5 +1,6 @@
 package com.ravk24.ravmusic.data.repo
 
+import com.ravk24.ravmusic.data.mediastore.MIN_SONG_DURATION_MS
 import com.ravk24.ravmusic.data.mediastore.MediaScanner
 import com.ravk24.ravmusic.data.model.Song
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -12,14 +13,16 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class LibraryRepositoryTest {
 
-    /** Records the repository state observed at the moment each scan runs. */
+    /** Records the repository state and the threshold observed at the moment each scan runs. */
     private class CountingScanner(var songs: List<Song>) : MediaScanner {
         var calls = 0
         var stateDuringScan: () -> LibraryState = { LibraryState.Idle }
         val observed = mutableListOf<LibraryState>()
-        override fun scan(): List<Song> {
+        val thresholds = mutableListOf<Long>()
+        override fun scan(minDurationMs: Long): List<Song> {
             calls++
             observed += stateDuringScan()
+            thresholds += minDurationMs
             return songs
         }
     }
@@ -89,6 +92,44 @@ class LibraryRepositoryTest {
         repo.clear()
         assertEquals(LibraryState.Idle, repo.state.value)
         repo.ensureLoaded()
+        assertEquals(2, scanner.calls)
+    }
+
+    @Test
+    fun `threshold is read on every query and recorded on the snapshot`() = runTest {
+        val scanner = CountingScanner(listOf(song(1)))
+        var threshold = 15_000L
+        val repo = LibraryRepository(scanner, StandardTestDispatcher(testScheduler), minDurationMs = { threshold })
+
+        repo.ensureLoaded()
+        assertEquals(listOf(15_000L), scanner.thresholds)
+        assertEquals(15_000L, (repo.state.value as LibraryState.Loaded).snapshot.minDurationMs)
+
+        threshold = 0L
+        repo.refresh()
+        assertEquals(listOf(15_000L, 0L), scanner.thresholds)
+        assertEquals(0L, (repo.state.value as LibraryState.Loaded).snapshot.minDurationMs)
+    }
+
+    @Test
+    fun `default threshold is the 30 s constant`() = runTest {
+        val scanner = CountingScanner(listOf(song(1)))
+        val repo = LibraryRepository(scanner, StandardTestDispatcher(testScheduler))
+        repo.ensureLoaded()
+        assertEquals(listOf(MIN_SONG_DURATION_MS), scanner.thresholds)
+    }
+
+    @Test
+    fun `refreshIfLoaded only re-queries a loaded library`() = runTest {
+        val scanner = CountingScanner(listOf(song(1)))
+        val repo = LibraryRepository(scanner, StandardTestDispatcher(testScheduler))
+
+        repo.refreshIfLoaded()
+        assertEquals(0, scanner.calls)
+        assertEquals(LibraryState.Idle, repo.state.value)
+
+        repo.ensureLoaded()
+        repo.refreshIfLoaded()
         assertEquals(2, scanner.calls)
     }
 }

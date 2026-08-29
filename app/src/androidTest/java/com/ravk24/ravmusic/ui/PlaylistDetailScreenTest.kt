@@ -46,6 +46,7 @@ class PlaylistDetailScreenTest {
         var removed: Long? = null
         var moved: Pair<Int, Int>? = null
         var cleaned = 0
+        var openedFolders = 0
     }
 
     private fun set(
@@ -68,6 +69,7 @@ class PlaylistDetailScreenTest {
                     onDelete = { calls.deleted++ },
                     onRemoveTrack = { calls.removed = it },
                     onMove = { from, to -> calls.moved = from to to },
+                    onOpenFolders = { calls.openedFolders++ },
                     onCleanUp = { calls.cleaned++ },
                 )
             }
@@ -102,11 +104,14 @@ class PlaylistDetailScreenTest {
 
     @Test
     fun emptyPlaylistDisablesPlay() {
-        set(list = emptyList())
+        val calls = set(list = emptyList())
         composeRule.onNodeWithTag("playlist_empty").assertIsDisplayed()
+        composeRule.onNodeWithText("No songs yet").assertIsDisplayed()
         composeRule.onNodeWithTag("playlist_play").assertIsNotEnabled()
         composeRule.onNodeWithTag("playlist_shuffle").assertIsNotEnabled()
         composeRule.onNodeWithTag("playlist_subtitle").assertTextEquals("0 songs · 0m")
+        composeRule.onNodeWithTag("playlist_empty_action").performClick()
+        assertEquals(1, calls.openedFolders)
     }
 
     @Test

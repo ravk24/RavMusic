@@ -23,7 +23,7 @@ The authoritative *machine-readable* plan for each phase lives in `openspec/chan
 | 4 | [Playlists](phases/04-playlists.md) — Room, CRUD, multi-select | `playlists` | ✅ Done |
 | 5 | [Now Playing](phases/05-now-playing.md) — full screen, seek, shuffle/repeat, queue | `now-playing` | ✅ Done |
 | 6 | [Sleep timer](phases/06-sleep-timer.md) | `sleep-timer` | ✅ Done |
-| 7 | [Polish](phases/07-polish.md) — empty states, missing files, animations, icon | `polish` | ⏳ Planned |
+| 7 | [Polish](phases/07-polish.md) — settings, missing files, empty states, motion, drag-select | `polish` | ✅ Done |
 | 8 | [Ship](phases/08-ship.md) — release build, sign, sideload | `release` | ⏳ Planned |
 
 Each phase ends with something installable on the actual phone.

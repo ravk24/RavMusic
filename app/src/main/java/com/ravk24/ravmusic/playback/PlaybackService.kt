@@ -50,7 +50,7 @@ class PlaybackService : MediaSessionService() {
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .build()
-        player.addListener(MissingFileSkipper(player))
+        player.addListener(MissingFileSkipper(player) { session })
 
         val engine = SleepTimerEngine(
             actions = object : SleepTimerActions {
@@ -154,9 +154,19 @@ class PlaybackService : MediaSessionService() {
      * the player idle on the bad item; moving on and re-preparing continues the queue. On the
      * last item the queue simply ends.
      */
-    private class MissingFileSkipper(private val player: Player) : Player.Listener {
+    private class MissingFileSkipper(
+        private val player: Player,
+        private val session: () -> MediaSession?,
+    ) : Player.Listener {
         override fun onPlayerError(error: PlaybackException) {
-            Log.w(TAG, "Playback error on ${player.currentMediaItem?.mediaId}: ${error.errorCodeName}")
+            val item = player.currentMediaItem
+            Log.w(TAG, "Playback error on ${item?.mediaId}: ${error.errorCodeName}")
+            // Tell whoever is listening before moving on (design D5 of `polish`).
+            val title = item?.mediaMetadata?.title?.toString().orEmpty().ifBlank { "this song" }
+            session()?.broadcastCustomCommand(
+                SessionCommand(PlaybackEvents.SKIPPED_MISSING, Bundle.EMPTY),
+                Bundle().apply { putString(PlaybackEvents.ARG_TITLE, title) },
+            )
             if (player.hasNextMediaItem()) {
                 player.seekToNextMediaItem()
                 player.prepare()

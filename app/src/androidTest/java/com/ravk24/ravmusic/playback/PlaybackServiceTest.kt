@@ -54,8 +54,11 @@ class PlaybackServiceTest {
             connection.setRepeat(RepeatMode.OFF)
             connection.setShuffle(false)
             connection.stopAndClear()
-            connection.release()
         }
+        // Releasing right away can drop the cancel before the session handles it, and a timer
+        // left running pauses the next test's playback: wait until the service confirms.
+        runCatching { await("session reset", 5_000L) { it.sleepTimer == SleepTimerState.Off && !it.hasQueue } }
+        onMain { connection.release() }
     }
 
     private fun onMain(block: () -> Unit) = instrumentation.runOnMainSync(block)
@@ -111,6 +114,19 @@ class PlaybackServiceTest {
     }
 
     private fun queueIds() = connection.state.value.queue.map { it.songId }
+
+    @Test
+    fun missingFileSkipIsReportedToTheController() {
+        onMain { connection.play(planQueue(listOf(tone(1, "A"), missing(2), tone(3, "C")), 0, "Test")!!) }
+        await("playback to start") { it.isPlaying }
+
+        val reported = await("skip notice", 30_000L) { it.skipped != null }
+        assertEquals("Missing 2", reported.skipped?.title)
+        assertEquals(1, reported.skipped?.seq)
+
+        val third = await("third item", 30_000L) { it.nowPlaying?.songId == 3L }
+        assertEquals("Missing 2", third.skipped?.title)
+    }
 
     @Test
     fun seekNextAndPrevious() {

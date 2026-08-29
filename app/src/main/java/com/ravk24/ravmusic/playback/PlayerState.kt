@@ -28,9 +28,16 @@ data class QueueEntry(
 )
 
 /**
+ * A file the service could not open and skipped (spec F1 edge case). [seq] increments per event
+ * so the UI can show the same title twice; it is not persisted anywhere.
+ */
+data class SkipNotice(val title: String, val seq: Int)
+
+/**
  * What the UI knows about the player. `nowPlaying == null` means no queue is loaded, which is
  * exactly when the mini player is hidden. [queue] is in the order songs will play (shuffled
  * order when shuffle is on) and [queueIndex] is the current song's position in it.
+ * [skipped] is the last skip notice, if any, since the connection was made.
  */
 data class PlayerState(
     val nowPlaying: NowPlaying? = null,
@@ -42,6 +49,7 @@ data class PlayerState(
     val queue: List<QueueEntry> = emptyList(),
     val queueIndex: Int = -1,
     val sleepTimer: SleepTimerState = SleepTimerState.Off,
+    val skipped: SkipNotice? = null,
 ) {
     val hasQueue: Boolean get() = nowPlaying != null
 

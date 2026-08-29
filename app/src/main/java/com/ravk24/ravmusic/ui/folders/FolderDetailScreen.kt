@@ -1,6 +1,13 @@
 package com.ravk24.ravmusic.ui.folders
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,6 +49,7 @@ import com.ravk24.ravmusic.PlaylistsHost
 import com.ravk24.ravmusic.data.model.Playlist
 import com.ravk24.ravmusic.data.model.Song
 import com.ravk24.ravmusic.ui.components.AppIcons
+import com.ravk24.ravmusic.ui.components.EmptyState
 import com.ravk24.ravmusic.ui.components.SongRow
 import com.ravk24.ravmusic.ui.components.songCountLabel
 import com.ravk24.ravmusic.ui.playlists.AddToPlaylistSheet
@@ -52,6 +60,8 @@ import com.ravk24.ravmusic.ui.theme.Navy
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 import com.ravk24.ravmusic.ui.theme.White
 import kotlinx.coroutines.launch
+
+private const val SELECTION_BAR_MS = 220
 
 /** Where the add-to-playlist flow is (design D8). */
 private sealed interface AddFlow {
@@ -113,7 +123,16 @@ fun FolderDetailScreen(
             .testTag("screen_folder_detail"),
         snackbarHost = { SnackbarHost(snackbar, modifier = Modifier.testTag("folder_snackbar")) },
         topBar = {
-            if (selecting) {
+            // The contextual bar slides down over the title bar and back up (design D7 of `polish`).
+            AnimatedContent(
+                targetState = selecting,
+                transitionSpec = {
+                    (fadeIn(tween(SELECTION_BAR_MS)) + slideInVertically(tween(SELECTION_BAR_MS)) { -it / 2 }) togetherWith
+                        (fadeOut(tween(SELECTION_BAR_MS)) + slideOutVertically(tween(SELECTION_BAR_MS)) { -it / 2 })
+                },
+                label = "selection bar",
+            ) { inSelection ->
+            if (inSelection) {
                 SelectionBar(
                     count = selectedIds.size,
                     total = songs.size,
@@ -151,6 +170,7 @@ fun FolderDetailScreen(
                     ),
                 )
             }
+            }
         },
         bottomBar = {
             if (selecting) {
@@ -174,26 +194,31 @@ fun FolderDetailScreen(
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         if (songs.isEmpty()) {
-            Box(
+            EmptyState(
+                icon = AppIcons.Folder,
+                title = "Nothing here yet",
+                body = "This folder has no songs above the short-audio threshold. Copy music into it, or pick another folder.",
+                actionLabel = "Back to folders",
+                onAction = onBack,
                 modifier = Modifier
-                    .fillMaxSize()
                     .padding(padding)
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "No songs in this folder",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("folder_detail_empty"),
-                )
-            }
+                    .testTag("folder_detail_empty"),
+                actionModifier = Modifier.testTag("folder_detail_empty_action"),
+            )
         } else {
+            val listState = rememberLazyListState()
+            val songIds = remember(songs) { songs.map { it.id } }
             LazyColumn(
-                state = rememberLazyListState(),
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
+                    .dragSelect(
+                        listState = listState,
+                        ids = songIds,
+                        selected = { selectedIds },
+                        onSelection = { selectedIds = it },
+                    )
                     .testTag("songs_list"),
             ) {
                 items(songs, key = { it.id }, contentType = { "song" }) { song ->

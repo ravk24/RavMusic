@@ -21,17 +21,18 @@ import androidx.compose.ui.unit.dp
 
 /**
  * The app's one empty-state layout (design canvas artboard 1h): icon badge, title, explanation,
- * a single action, and a small hint. Used for the missing-permission state and the empty library.
+ * an optional single action, and an optional small hint. Used for the missing-permission state,
+ * the empty library, and (since `polish`) the empty folder and playlist details.
  */
 @Composable
 fun EmptyState(
     icon: ImageVector,
     title: String,
     body: String,
-    actionLabel: String,
-    onAction: () -> Unit,
-    hint: String,
     modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: () -> Unit = {},
+    hint: String? = null,
     actionModifier: Modifier = Modifier,
 ) {
     Column(
@@ -65,14 +66,18 @@ fun EmptyState(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onAction, modifier = actionModifier) {
-            Text("$actionLabel  ›")
+        if (actionLabel != null) {
+            Button(onClick = onAction, modifier = actionModifier) {
+                Text("$actionLabel  ›")
+            }
         }
-        Text(
-            text = hint,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outlineVariant,
-            textAlign = TextAlign.Center,
-        )
+        if (hint != null) {
+            Text(
+                text = hint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outlineVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
