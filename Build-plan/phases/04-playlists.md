@@ -2,7 +2,12 @@
 
 **OpenSpec change:** `playlists` · **Status:** ✅ Done (2026-08-29)
 
-**Result:** RESULTS_PLACEHOLDER
+**Result:** 58 JVM unit tests green; 65 Compose/instrumented tests green on the API 36 and API 26 emulators,
+including `PlaylistDaoTest` (in-memory Room) and `AddToPlaylistFlowTest` (the real ViewModel over an in-memory
+database driven through the shell: select → add to a new playlist → card → detail in order → duplicate prompt).
+adb walkthrough on both: selection mode, add-to-playlist sheet, Shuffle play, drag reorder persisted, swipe remove,
+rename, missing-file banner + Clean up, delete with confirmation; playlists survive `am force-stop` and, on API 26,
+`adb reboot`. Room 2.8.4 + KSP 2.3.11 build with AGP's built-in Kotlin (no fallback pin needed).
 
 ## Goal
 The main play unit, saved locally, plus the multi-select flow that is the whole reason this app exists

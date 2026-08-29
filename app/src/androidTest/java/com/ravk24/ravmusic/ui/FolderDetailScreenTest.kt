@@ -33,7 +33,7 @@ class FolderDetailScreenTest {
             }
         }
         composeRule.onNodeWithTag("folder_detail_title").assertTextEquals("Music")
-        composeRule.onNodeWithTag("folder_detail_subtitle").assertTextEquals("2 songs")
+        composeRule.onNodeWithTag("folder_detail_subtitle").assertTextEquals("2 songs · long-press to select")
         composeRule.onNodeWithTag("song_row_1").assertIsDisplayed()
         composeRule.onNodeWithText("alpha song").assertIsDisplayed()
         composeRule.onNodeWithText("Unknown artist").assertIsDisplayed()
@@ -52,7 +52,7 @@ class FolderDetailScreenTest {
         }
         composeRule.onNodeWithText("Nocturne Ave").assertIsDisplayed()
         composeRule.onNodeWithText("1:02:05").assertIsDisplayed()
-        composeRule.onNodeWithTag("folder_detail_subtitle").assertTextEquals("1 song")
+        composeRule.onNodeWithTag("folder_detail_subtitle").assertTextEquals("1 song · long-press to select")
     }
 
     @Test

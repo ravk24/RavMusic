@@ -6,7 +6,10 @@ import com.ravk24.ravmusic.data.model.Song
 import com.ravk24.ravmusic.data.model.moveItem
 import com.ravk24.ravmusic.data.model.partitionDuplicates
 import com.ravk24.ravmusic.data.repo.PlaylistStore
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -67,10 +70,18 @@ class PlaylistsViewModelTest {
 
     private fun song(id: Long) = Song(id, "content://media/external/audio/media/$id", "S$id", null, 60_000L, "f", "F")
 
+    /**
+     * The ViewModel's own scope on the test scheduler: its launches are foreground events (so
+     * `advanceUntilIdle` runs them) without being children of `runTest`, which would otherwise
+     * wait for the `stateIn` sharing coroutine forever. Cancelled at the end of each test.
+     */
+    private fun vmScope() = CoroutineScope(SupervisorJob() + dispatcher)
+
     @Test
     fun `create returns the id and addSongs skips duplicates when asked`() = runTest(dispatcher) {
         val store = FakeStore()
-        val vm = PlaylistsViewModel(store, scope = this)
+        val scope = vmScope()
+        val vm = PlaylistsViewModel(store, scope = scope)
         val id = vm.create("  Late night ")
         assertEquals("Late night", store.lists.value.single().name)
 
@@ -81,12 +92,14 @@ class PlaylistsViewModelTest {
 
         assertEquals(3, vm.addSongs(id, listOf(song(2), song(3), song(4)), skipDuplicates = false))
         assertEquals(7, store.trackMap.value[id]!!.size)
+        scope.cancel()
     }
 
     @Test
     fun `move remove cleanUp rename delete reach the store`() = runTest(dispatcher) {
         val store = FakeStore()
-        val vm = PlaylistsViewModel(store, scope = this)
+        val scope = vmScope()
+        val vm = PlaylistsViewModel(store, scope = scope)
         val id = vm.create("Focus")
         vm.addSongs(id, listOf(song(1), song(2), song(3)), skipDuplicates = false)
         val ids = store.trackMap.value[id]!!.map { it.id }
@@ -105,5 +118,6 @@ class PlaylistsViewModelTest {
 
         vm.delete(id); testScheduler.advanceUntilIdle()
         assertEquals(0, store.lists.value.size)
+        scope.cancel()
     }
 }

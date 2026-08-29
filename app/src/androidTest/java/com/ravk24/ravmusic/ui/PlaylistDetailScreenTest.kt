@@ -8,7 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -114,7 +114,7 @@ class PlaylistDetailScreenTest {
         val calls = set()
         composeRule.onNodeWithTag("playlist_menu").performClick()
         composeRule.onNodeWithTag("menu_rename").performClick()
-        composeRule.onNodeWithTag("playlist_name_field").performTextInput("s")
+        composeRule.onNodeWithTag("playlist_name_field").performTextReplacement("Late nights")
         composeRule.onNodeWithTag("playlist_name_confirm").performClick()
         assertEquals("Late nights", calls.renamed)
 
@@ -140,7 +140,7 @@ class PlaylistDetailScreenTest {
     fun dragHandleReorders() {
         val calls = set()
         val rowHeight = composeRule.onNodeWithTag("track_row_11").fetchSemanticsNode().size.height.toFloat()
-        composeRule.onNodeWithTag("drag_handle_12").performTouchInput {
+        composeRule.onNodeWithTag("drag_handle_12", useUnmergedTree = true).performTouchInput {
             down(center)
             advanceEventTime(800)
             moveBy(androidx.compose.ui.geometry.Offset(0f, -rowHeight * 1.2f), delayMillis = 100)

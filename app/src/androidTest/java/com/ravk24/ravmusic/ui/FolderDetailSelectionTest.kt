@@ -60,7 +60,7 @@ class FolderDetailSelectionTest {
         set()
         longPress(1)
         composeRule.onNodeWithTag("selection_count").assertTextEquals("1 selected")
-        composeRule.onNodeWithTag("song_check_1").assertIsDisplayed()
+        composeRule.onNodeWithTag("song_check_1", useUnmergedTree = true).assertIsDisplayed()
         assertNull(played)
 
         composeRule.onNodeWithTag("song_row_2").performClick()

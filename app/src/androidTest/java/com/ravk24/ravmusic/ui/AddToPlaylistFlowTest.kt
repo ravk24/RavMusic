@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -12,7 +13,6 @@ import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ravk24.ravmusic.PlaylistsViewModel
 import com.ravk24.ravmusic.data.db.RavMusicDatabase
@@ -82,6 +82,10 @@ class AddToPlaylistFlowTest {
         db.close()
     }
 
+    private fun waitForTag(tag: String) {
+        composeRule.waitUntil(10_000) { composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
+    }
+
     @Test
     fun selectThreeAddToNewPlaylistThenSkipDuplicates() {
         // Music folder has songs 1 ("alpha song") and 2 ("Glass Rain"); Rock has 3; Download has 4.
@@ -98,8 +102,10 @@ class AddToPlaylistFlowTest {
         composeRule.onNodeWithText("Added 2 to Late night").assertIsDisplayed()
 
         // Add one more from Rock, this time to the existing playlist.
-        Espresso.pressBack()
+        composeRule.onNodeWithTag("folder_detail_back").performClick()
+        waitForTag("folder_row_rock")
         composeRule.onNodeWithTag("folder_row_rock").performClick()
+        waitForTag("song_row_3")
         composeRule.onNodeWithTag("song_row_3").performTouchInput { longClick() }
         composeRule.onNodeWithTag("add_to_playlist").performClick()
         val id = viewModel.playlists.value.single().id
@@ -107,10 +113,14 @@ class AddToPlaylistFlowTest {
         composeRule.waitUntil(10_000) { viewModel.playlists.value.single().songCount == 3 }
 
         // Home shows the card; the detail lists the three in the order they were added.
+        composeRule.onNodeWithTag("folder_detail_back").performClick()
+        waitForTag("tab_playlists")
         composeRule.onNodeWithTag("tab_playlists").performClick()
+        waitForTag("playlist_card_$id")
         composeRule.onNodeWithTag("playlist_card_$id").assertIsDisplayed()
         composeRule.onNodeWithText("Late night").assertIsDisplayed()
         composeRule.onNodeWithTag("playlist_card_$id").performClick()
+        waitForTag("playlist_subtitle")
         composeRule.onNodeWithTag("playlist_subtitle").assertTextEquals("3 songs · 4m")
         composeRule.waitUntil(10_000) { viewModel.tracks(id).value.size == 3 }
         assertEquals(listOf(1L, 2L, 3L), viewModel.tracks(id).value.map { it.mediaStoreId })
@@ -122,9 +132,12 @@ class AddToPlaylistFlowTest {
         assertEquals(listOf(1L, 2L, 3L), shuffled?.first?.map { it.id })
 
         // Adding the same songs again prompts; skipping keeps three.
-        Espresso.pressBack()
+        composeRule.onNodeWithTag("playlist_back").performClick()
+        waitForTag("tab_folders")
         composeRule.onNodeWithTag("tab_folders").performClick()
+        waitForTag("folder_row_music")
         composeRule.onNodeWithTag("folder_row_music").performClick()
+        waitForTag("song_row_1")
         composeRule.onNodeWithTag("song_row_1").performTouchInput { longClick() }
         composeRule.onNodeWithTag("selection_all").performClick()
         composeRule.onNodeWithTag("add_to_playlist").performClick()
