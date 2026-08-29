@@ -1,0 +1,6 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme (night). Framework parent only: Compose Material 3 handles all real theming. -->
+    <style name="Theme.RavMusic" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/purple_700</item>
+    </style>
+</resources>
