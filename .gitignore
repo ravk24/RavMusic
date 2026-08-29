@@ -16,3 +16,17 @@ local.properties
 
 # Kotlin 2.x compiler session data
 .kotlin
+
+# IDE state (Android Studio recreates it)
+/.idea/
+
+# Local signing keys must never be committed
+*.jks
+*.keystore
+
+# Per-user Claude Code settings
+.claude/settings.local.json
+
+# Heap dumps and release outputs
+*.hprof
+/app/release/

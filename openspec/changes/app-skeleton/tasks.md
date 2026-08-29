@@ -38,4 +38,4 @@
 
 - [x] 6.1 Run `.\gradlew.bat assembleDebug testDebugUnitTest` and `connectedDebugAndroidTest` against an API 33+ emulator; verify all tasks report `BUILD SUCCESSFUL` and every test passes
 - [x] 6.2 Manual walkthrough on an API 33+ device and an API 26 emulator: fresh install → "No music found" → Allow → grant → Playlists placeholder → Folders → back → Playlists → overflow → Settings → back → back exits; rotate on Folders keeps Folders selected; toggle system dark mode while in recents and return; verify each step matches the `app-shell`, `theme`, and `audio-permission` scenarios and note any deviation in this task
-- [ ] 6.3 Confirm `git status` shows only intended files, then commit on `main` with a message summarising the skeleton; verify `git log -1` shows the commit and `.\gradlew.bat assembleDebug` from a clean checkout is green
+- [x] 6.3 Confirm `git status` shows only intended files, then commit on `main` with a message summarising the skeleton; verify `git log -1` shows the commit and `.\gradlew.bat assembleDebug` from a clean checkout is green
