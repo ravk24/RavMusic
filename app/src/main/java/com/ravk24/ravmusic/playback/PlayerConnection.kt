@@ -2,11 +2,13 @@ package com.ravk24.ravmusic.playback
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.Bundle
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
+import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,10 +37,20 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
         override fun onEvents(player: Player, events: Player.Events) = publish(player)
     }
 
+    /** Sleep-timer state as last published by the service through session extras. */
+    private var timerState: SleepTimerState = SleepTimerState.Off
+
+    private val controllerListener = object : MediaController.Listener {
+        override fun onExtrasChanged(controller: MediaController, extras: Bundle) {
+            timerState = SleepTimerCommands.fromExtras(extras)
+            publish(controller)
+        }
+    }
+
     override fun connect() {
         if (future != null) return
         val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-        val f = MediaController.Builder(context, token).buildAsync()
+        val f = MediaController.Builder(context, token).setListener(controllerListener).buildAsync()
         future = f
         f.addListener(
             {
@@ -51,6 +63,7 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
                 }
                 controller = c
                 c.addListener(listener)
+                timerState = SleepTimerCommands.fromExtras(c.sessionExtras)
                 publish(c)
                 while (pending.isNotEmpty()) pending.removeFirst().invoke(c)
             },
@@ -88,6 +101,9 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
 
     /** Test hook: the controller's shuffle mode, or null while disconnected. */
     fun shuffleModeEnabledForTest(): Boolean? = controller?.shuffleModeEnabled
+
+    /** Test hook: the session's playback volume, or null while disconnected. */
+    fun volumeForTest(): Float? = controller?.volume
 
     override fun refreshPosition() {
         controller?.let { c ->
@@ -143,12 +159,38 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
         publish(c)
     }
 
+    override fun setSleepTimer(durationMs: Long) = withController { c ->
+        c.sendCustomCommand(
+            SessionCommand(SleepTimerCommands.SET, Bundle.EMPTY),
+            Bundle().apply { putLong(SleepTimerCommands.ARG_DURATION_MS, durationMs) },
+        )
+    }
+
+    override fun setSleepTimerEndOfTrack() = withController { c ->
+        c.sendCustomCommand(
+            SessionCommand(SleepTimerCommands.SET, Bundle.EMPTY),
+            Bundle().apply { putBoolean(SleepTimerCommands.ARG_END_OF_TRACK, true) },
+        )
+    }
+
+    override fun extendSleepTimer(extraMs: Long) = withController { c ->
+        c.sendCustomCommand(
+            SessionCommand(SleepTimerCommands.EXTEND, Bundle.EMPTY),
+            Bundle().apply { putLong(SleepTimerCommands.ARG_EXTRA_MS, extraMs) },
+        )
+    }
+
+    override fun cancelSleepTimer() = withController { c ->
+        c.sendCustomCommand(SessionCommand(SleepTimerCommands.CANCEL, Bundle.EMPTY), Bundle.EMPTY)
+    }
+
     override fun release() {
         controller?.removeListener(listener)
         controller = null
         future?.let { MediaController.releaseFuture(it) }
         future = null
         pending.clear()
+        timerState = SleepTimerState.Off
         _state.value = PlayerState()
     }
 
@@ -188,6 +230,7 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
             },
             queue = queue,
             queueIndex = order.currentPosition,
+            sleepTimer = timerState,
         )
     }
 

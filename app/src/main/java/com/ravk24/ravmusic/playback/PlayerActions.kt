@@ -20,6 +20,10 @@ data class PlayerActions(
     val onJumpTo: (queuePosition: Int) -> Unit,
     val onMoveInQueue: (from: Int, to: Int) -> Unit,
     val onRefreshPosition: () -> Unit,
+    val onSetSleepTimer: (durationMs: Long) -> Unit,
+    val onSleepEndOfTrack: () -> Unit,
+    val onExtendSleepTimer: (extraMs: Long) -> Unit,
+    val onCancelSleepTimer: () -> Unit,
 ) {
     companion object {
         fun none() = PlayerActions(
@@ -35,6 +39,10 @@ data class PlayerActions(
             onJumpTo = {},
             onMoveInQueue = { _, _ -> },
             onRefreshPosition = {},
+            onSetSleepTimer = {},
+            onSleepEndOfTrack = {},
+            onExtendSleepTimer = {},
+            onCancelSleepTimer = {},
         )
     }
 }

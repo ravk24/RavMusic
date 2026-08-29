@@ -73,6 +73,14 @@ class PlayerViewModel(
 
     fun moveInQueue(from: Int, to: Int) = bridge.moveInQueue(from, to)
 
+    fun setSleepTimer(durationMs: Long) = bridge.setSleepTimer(durationMs)
+
+    fun sleepEndOfTrack() = bridge.setSleepTimerEndOfTrack()
+
+    fun extendSleepTimer(extraMs: Long) = bridge.extendSleepTimer(extraMs)
+
+    fun cancelSleepTimer() = bridge.cancelSleepTimer()
+
     /** The shell's view of this ViewModel. */
     fun actions(): PlayerActions = PlayerActions(
         onPlayPause = ::togglePlayPause,
@@ -87,6 +95,10 @@ class PlayerViewModel(
         onJumpTo = ::jumpTo,
         onMoveInQueue = ::moveInQueue,
         onRefreshPosition = ::refreshPosition,
+        onSetSleepTimer = ::setSleepTimer,
+        onSleepEndOfTrack = ::sleepEndOfTrack,
+        onExtendSleepTimer = ::extendSleepTimer,
+        onCancelSleepTimer = ::cancelSleepTimer,
     )
 
     override fun onCleared() {

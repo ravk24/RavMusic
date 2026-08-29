@@ -54,6 +54,14 @@ class PlayerViewModelTest {
         override fun setRepeat(mode: RepeatMode) { lastRepeatSet = mode; flow.value = flow.value.copy(repeatMode = mode) }
         override fun jumpToQueuePosition(position: Int) { jumps += position }
         override fun moveInQueue(from: Int, to: Int) { moves += from to to }
+        var sleepSet: Long? = null
+        var sleepEndOfTrack = 0
+        var sleepExtend: Long? = null
+        var sleepCancel = 0
+        override fun setSleepTimer(durationMs: Long) { sleepSet = durationMs }
+        override fun setSleepTimerEndOfTrack() { sleepEndOfTrack++ }
+        override fun extendSleepTimer(extraMs: Long) { sleepExtend = extraMs }
+        override fun cancelSleepTimer() { sleepCancel++ }
         override fun release() {}
     }
 
@@ -126,6 +134,11 @@ class PlayerViewModelTest {
         a.onJumpTo(3)
         a.onMoveInQueue(4, 1)
         a.onRefreshPosition()
+        a.onSetSleepTimer(900_000L); a.onSleepEndOfTrack(); a.onExtendSleepTimer(60_000L); a.onCancelSleepTimer()
+        assertEquals(900_000L, bridge.sleepSet)
+        assertEquals(1, bridge.sleepEndOfTrack)
+        assertEquals(60_000L, bridge.sleepExtend)
+        assertEquals(1, bridge.sleepCancel)
         assertEquals(listOf(12_345L), bridge.seeks)
         assertEquals(1, bridge.nexts)
         assertEquals(1, bridge.previouses)

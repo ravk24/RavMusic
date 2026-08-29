@@ -1,5 +1,6 @@
 package com.ravk24.ravmusic.ui.nowplaying
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +18,9 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import android.os.SystemClock
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,10 +47,15 @@ import com.ravk24.ravmusic.playback.PlayerActions
 import com.ravk24.ravmusic.playback.PlayerState
 import com.ravk24.ravmusic.playback.QueueEntry
 import com.ravk24.ravmusic.playback.RepeatMode
+import com.ravk24.ravmusic.playback.SLEEP_EXTEND_MS
+import com.ravk24.ravmusic.playback.SleepTimerState
 import com.ravk24.ravmusic.ui.components.AppIcons
 import com.ravk24.ravmusic.ui.components.UNKNOWN_ARTIST_LABEL
 import com.ravk24.ravmusic.ui.components.artGradient
 import com.ravk24.ravmusic.ui.components.formatDuration
+import com.ravk24.ravmusic.ui.components.formatRemaining
+import com.ravk24.ravmusic.ui.theme.Lavender
+import com.ravk24.ravmusic.ui.theme.LavenderBorder
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 import kotlinx.coroutines.delay
 
@@ -65,6 +74,20 @@ fun NowPlayingScreen(
     val now = state.nowPlaying
     var scrub by remember { mutableStateOf<Float?>(null) }
     var queueOpen by rememberSaveable { mutableStateOf(false) }
+    var sleepOpen by rememberSaveable { mutableStateOf(false) }
+
+    // Tick once a second while a countdown runs so the chip keeps counting even when paused.
+    val timer = state.sleepTimer
+    var nowTick by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+    LaunchedEffect(timer is SleepTimerState.Countdown) {
+        if (timer is SleepTimerState.Countdown) {
+            while (true) {
+                nowTick = SystemClock.elapsedRealtime()
+                delay(1_000)
+            }
+        }
+    }
+    val remainingMs: Long? = (timer as? SleepTimerState.Countdown)?.let { (it.endAtElapsedMs - nowTick).coerceAtLeast(0L) }
 
     LaunchedEffect(state.isPlaying) {
         if (state.isPlaying) {
@@ -239,11 +262,30 @@ fun NowPlayingScreen(
                 .padding(bottom = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         ) {
+            val sleepActive = timer !is SleepTimerState.Off
             AssistChip(
-                onClick = {},
-                enabled = false,
-                label = { Text("Sleep timer") },
+                onClick = { sleepOpen = true },
+                enabled = state.hasQueue,
+                label = {
+                    Text(
+                        when (timer) {
+                            SleepTimerState.Off -> "Sleep timer"
+                            is SleepTimerState.Countdown -> "Sleep · ${formatRemaining(remainingMs ?: 0L)} · tap to extend"
+                            SleepTimerState.EndOfTrack -> "Sleep · end of track"
+                        },
+                    )
+                },
                 leadingIcon = { Icon(AppIcons.Bedtime, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                colors = if (sleepActive) {
+                    AssistChipDefaults.assistChipColors(
+                        containerColor = Lavender,
+                        labelColor = MaterialTheme.colorScheme.primary,
+                        leadingIconContentColor = MaterialTheme.colorScheme.primary,
+                    )
+                } else {
+                    AssistChipDefaults.assistChipColors()
+                },
+                border = if (sleepActive) BorderStroke(1.dp, LavenderBorder) else AssistChipDefaults.assistChipBorder(enabled = state.hasQueue),
                 modifier = Modifier.testTag("np_sleep_chip"),
             )
             AssistChip(
@@ -253,6 +295,19 @@ fun NowPlayingScreen(
                 modifier = Modifier.testTag("np_queue_chip"),
             )
         }
+    }
+
+    if (sleepOpen) {
+        SleepTimerSheet(
+            state = timer,
+            remainingMs = remainingMs,
+            onPreset = { minutes -> actions.onSetSleepTimer(minutes * 60_000L) },
+            onCustom = { minutes -> actions.onSetSleepTimer(minutes * 60_000L) },
+            onEndOfTrack = actions.onSleepEndOfTrack,
+            onExtend = { actions.onExtendSleepTimer(SLEEP_EXTEND_MS) },
+            onCancel = actions.onCancelSleepTimer,
+            onDismiss = { sleepOpen = false },
+        )
     }
 
     if (queueOpen) {

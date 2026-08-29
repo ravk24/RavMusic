@@ -50,6 +50,7 @@ class PlaybackServiceTest {
     fun tearDown() {
         // The service outlives each test: reset the session modes so nothing leaks into the next one.
         onMain {
+            connection.cancelSleepTimer()
             connection.setRepeat(RepeatMode.OFF)
             connection.setShuffle(false)
             connection.stopAndClear()
@@ -187,6 +188,62 @@ class PlaybackServiceTest {
         assertEquals(expected, after.queue.map { it.songId })
         assertEquals(currentId, after.nowPlaying?.songId)
         await("still playing") { it.isPlaying }
+    }
+
+    @Test
+    fun sleepTimerFadesPausesAndRestoresVolume() {
+        onMain {
+            connection.play(planQueue(listOf(tone(1, "A"), tone(2, "B"), tone(3, "C")), 0, "Test")!!)
+            connection.setRepeat(RepeatMode.ALL)
+            connection.setSleepTimer(4_000L)
+        }
+        val armed = await("countdown reported") { it.isPlaying && it.sleepTimer is SleepTimerState.Countdown }
+        val endAt = (armed.sleepTimer as SleepTimerState.Countdown).endAtElapsedMs
+        assertTrue(endAt - android.os.SystemClock.elapsedRealtime() in 1_000L..4_500L)
+
+        val paused = await("timer to pause playback", timeoutMs = 10_000L) { !it.isPlaying && it.sleepTimer == SleepTimerState.Off }
+        assertTrue(paused.hasQueue)
+        var volume = 0f
+        onMain { volume = connection.volumeForTest() ?: -1f }
+        assertEquals(1f, volume, 0.001f)
+    }
+
+    @Test
+    fun sleepTimerEndOfTrackPausesAtTheTransition() {
+        onMain {
+            connection.play(planQueue(listOf(tone(1, "A"), tone(2, "B")), 0, "Test")!!)
+            connection.setSleepTimerEndOfTrack()
+        }
+        await("end of track armed") { it.isPlaying && it.sleepTimer == SleepTimerState.EndOfTrack }
+        val paused = await("pause at the transition", timeoutMs = 10_000L) { !it.isPlaying && it.nowPlaying?.songId == 2L }
+        onMain { connection.refreshPosition() }
+        assertTrue("position should be at the start, was ${connection.state.value.positionMs}", connection.state.value.positionMs < 500L)
+        assertEquals(SleepTimerState.Off, paused.sleepTimer)
+    }
+
+    @Test
+    fun sleepTimerExtendCancelAndReconnect() {
+        onMain {
+            connection.play(planQueue(listOf(tone(1, "A")), 0, "Test")!!)
+            connection.setRepeat(RepeatMode.ONE)
+            connection.setSleepTimer(60_000L)
+        }
+        val first = await("countdown") { it.sleepTimer is SleepTimerState.Countdown }
+        val firstEnd = (first.sleepTimer as SleepTimerState.Countdown).endAtElapsedMs
+        onMain { connection.extendSleepTimer(30_000L) }
+        await("extended") { (it.sleepTimer as? SleepTimerState.Countdown)?.endAtElapsedMs == firstEnd + 30_000L }
+
+        // A fresh controller sees the running timer.
+        var other: PlayerConnection? = null
+        onMain { other = PlayerConnection(context).also { it.connect() } }
+        val deadline = System.currentTimeMillis() + 10_000L
+        while (System.currentTimeMillis() < deadline && other!!.state.value.sleepTimer !is SleepTimerState.Countdown) Thread.sleep(50)
+        assertEquals(firstEnd + 30_000L, (other!!.state.value.sleepTimer as SleepTimerState.Countdown).endAtElapsedMs)
+        onMain { other!!.release() }
+
+        onMain { connection.cancelSleepTimer() }
+        val cancelled = await("cancelled") { it.sleepTimer == SleepTimerState.Off }
+        assertTrue(cancelled.isPlaying)
     }
 
     @Test

@@ -253,3 +253,30 @@ disagreed or were silent in six places. Resolved as follows.
   connect (refines D-25, which kept only one).
 - **Why:** `play` immediately followed by `setRepeat` (a real sequence from Now Playing after a cold start)
   dropped the `play`; the instrumented `PlaybackServiceTest` caught it.
+
+## 2026-08-29 — Sleep timer design (`openspec/changes/sleep-timer/design.md`)
+
+### D-43 The sleep timer is a pure engine hosted by the service
+- **Decision:** `SleepTimerEngine(actions, scope, clock)` over `SleepTimerActions { volume; pause() }` runs in
+  `PlaybackService` on a `Dispatchers.Main.immediate` scope with `SystemClock.elapsedRealtime`. It fades the
+  volume linearly over the last 10 s in 250 ms steps, pauses, then restores the volume. Unit-tested on a
+  virtual clock.
+- **Why:** Spec F6 requires survival without the activity; the playback wake lock keeps the CPU awake while
+  music plays, so a coroutine delay is enough and no exact-alarm permission is needed.
+- **Rules out:** `AlarmManager`, WorkManager, a UI-side countdown.
+
+### D-44 Custom session commands in, session extras out
+- **Decision:** `SleepTimerCommands` defines `…sleep.set` (duration or end-of-track), `…sleep.extend`,
+  `…sleep.cancel`; the session callback advertises them in `onConnect` and dispatches in `onCustomCommand`;
+  the engine's state is published with `setSessionExtras` and read by `PlayerConnection` on connect and in
+  `MediaController.Listener.onExtrasChanged`.
+- **Why:** One IPC path both ways, reconnect-safe, no extra binding.
+
+### D-45 Remaining time is computed on the UI's own tick
+- **Decision:** `SleepTimerState.Countdown` carries only the end time; the chip subtracts
+  `SystemClock.elapsedRealtime()` on a 1 s tick while a countdown runs (independent of the position ticker,
+  so it counts down even while paused).
+
+### D-46 A manual pause does not cancel the timer
+- **Decision:** If the user pauses before the countdown ends, the fade still runs and the final pause is a
+  no-op; the volume is restored either way. Extend and cancel restore the volume immediately.

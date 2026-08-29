@@ -26,3 +26,12 @@ fun formatTotalDuration(ms: Long): String {
 
 /** "1 playlist" / "6 playlists". */
 fun playlistCountLabel(count: Int): String = if (count == 1) "1 playlist" else "$count playlists"
+
+/** Countdown label: "32:14", "02:10", "1:02:14"; rounds up so a fresh 15-minute timer reads 15:00. */
+fun formatRemaining(ms: Long): String {
+    val totalSeconds = ((ms.coerceAtLeast(0L) + 999L) / 1000L)
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, seconds) else "%02d:%02d".format(minutes, seconds)
+}

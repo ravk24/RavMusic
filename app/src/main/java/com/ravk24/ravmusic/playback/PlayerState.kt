@@ -41,6 +41,7 @@ data class PlayerState(
     val repeatMode: RepeatMode = RepeatMode.OFF,
     val queue: List<QueueEntry> = emptyList(),
     val queueIndex: Int = -1,
+    val sleepTimer: SleepTimerState = SleepTimerState.Off,
 ) {
     val hasQueue: Boolean get() = nowPlaying != null
 

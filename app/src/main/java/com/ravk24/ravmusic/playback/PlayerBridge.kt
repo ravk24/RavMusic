@@ -43,6 +43,17 @@ interface PlayerBridge {
      */
     fun moveInQueue(from: Int, to: Int)
 
+    /** Starts (or replaces) a sleep countdown of [durationMs]. */
+    fun setSleepTimer(durationMs: Long)
+
+    /** Pause when the current song ends. */
+    fun setSleepTimerEndOfTrack()
+
+    /** Pushes a running countdown back by [extraMs]. */
+    fun extendSleepTimer(extraMs: Long)
+
+    fun cancelSleepTimer()
+
     /** Releases the controller. [connect] may be called again afterwards. */
     fun release()
 }

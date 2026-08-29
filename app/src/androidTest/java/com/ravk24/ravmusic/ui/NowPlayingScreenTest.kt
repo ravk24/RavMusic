@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -47,6 +48,7 @@ class NowPlayingScreenTest {
     private class Calls {
         var playPause = 0; var next = 0; var prev = 0; var shuffle = 0; var repeat = 0
         var seek: Long? = null; var jump: Int? = null; var move: Pair<Int, Int>? = null; var refreshes = 0; var collapse = 0
+        var sleep: Long? = null; var sleepCancel = 0
     }
 
     private fun set(state: PlayerState): Calls {
@@ -55,6 +57,7 @@ class NowPlayingScreenTest {
             onPlayPause = { c.playPause++ }, onNext = { c.next++ }, onPrevious = { c.prev++ },
             onToggleShuffle = { c.shuffle++ }, onCycleRepeat = { c.repeat++ }, onSeek = { c.seek = it },
             onJumpTo = { c.jump = it }, onMoveInQueue = { f, t -> c.move = f to t }, onRefreshPosition = { c.refreshes++ },
+            onSetSleepTimer = { c.sleep = it }, onCancelSleepTimer = { c.sleepCancel++ },
         )
         composeRule.setContent {
             RavMusicTheme { NowPlayingScreen(state = state, actions = actions, onCollapse = { c.collapse++ }) }
@@ -115,6 +118,36 @@ class NowPlayingScreenTest {
         composeRule.mainClock.advanceTimeBy(1_100)
         composeRule.waitUntil(3_000) { c.refreshes >= 2 }
         assertTrue(c.refreshes >= 2)
+    }
+
+    @Test
+    fun sleepChipStatesAndSheet() {
+        val c = set(playing)
+        composeRule.onNodeWithText("Sleep timer").assertIsDisplayed()
+        composeRule.onNodeWithTag("np_sleep_chip").performClick()
+        composeRule.onNodeWithTag("sleep_sheet").assertIsDisplayed()
+        composeRule.onNodeWithTag("sleep_preset_45").performClick()
+        assertEquals(45 * 60_000L, c.sleep)
+    }
+
+    @Test
+    fun sleepChipCountsDownAndShowsEndOfTrack() {
+        val endAt = android.os.SystemClock.elapsedRealtime() + 15 * 60_000L
+        set(playing.copy(sleepTimer = com.ravk24.ravmusic.playback.SleepTimerState.Countdown(endAt)))
+        composeRule.onNodeWithText("Sleep · 15:00 · tap to extend").assertIsDisplayed()
+        composeRule.mainClock.advanceTimeBy(2_100)
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("Sleep · 14:5", substring = true).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    @Test
+    fun sleepChipEndOfTrackAndCancel() {
+        val c = set(playing.copy(sleepTimer = com.ravk24.ravmusic.playback.SleepTimerState.EndOfTrack))
+        composeRule.onNodeWithText("Sleep · end of track").assertIsDisplayed()
+        composeRule.onNodeWithTag("np_sleep_chip").performClick()
+        composeRule.onNodeWithTag("sleep_cancel").performClick()
+        assertEquals(1, c.sleepCancel)
     }
 
     @Test

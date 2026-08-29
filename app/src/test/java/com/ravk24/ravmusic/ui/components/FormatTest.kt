@@ -35,6 +35,18 @@ class FormatTest {
     }
 
     @Test
+    fun `formatRemaining pads minutes rounds up and shows hours`() {
+        assertEquals("32:14", formatRemaining(32 * 60_000L + 14_000L))
+        assertEquals("02:10", formatRemaining(130_000L))
+        assertEquals("15:00", formatRemaining(15 * 60_000L))
+        assertEquals("15:00", formatRemaining(15 * 60_000L - 1L))
+        assertEquals("14:59", formatRemaining(15 * 60_000L - 1_000L))
+        assertEquals("1:02:14", formatRemaining(3_734_000L))
+        assertEquals("00:00", formatRemaining(0L))
+        assertEquals("00:00", formatRemaining(-5L))
+    }
+
+    @Test
     fun `playlistCountLabel pluralises`() {
         assertEquals("1 playlist", playlistCountLabel(1))
         assertEquals("6 playlists", playlistCountLabel(6))
