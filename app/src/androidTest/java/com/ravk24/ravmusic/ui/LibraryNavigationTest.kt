@@ -47,6 +47,8 @@ class LibraryNavigationTest {
                     onPlayPause = {},
                     onDismissPlayer = {},
                     onPlaySong = { _, _, _ -> },
+                    onShufflePlay = { _, _ -> },
+                    playlists = FakePlaylistsHost(),
                 )
             }
         }

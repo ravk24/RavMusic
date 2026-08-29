@@ -25,6 +25,22 @@ class FormatTest {
     }
 
     @Test
+    fun `formatTotalDuration drops seconds and shows hours when needed`() {
+        assertEquals("0m", formatTotalDuration(0L))
+        assertEquals("0m", formatTotalDuration(59_000L))
+        assertEquals("51m", formatTotalDuration(51 * 60_000L + 30_000L))
+        assertEquals("2h 58m", formatTotalDuration((2 * 60 + 58) * 60_000L))
+        assertEquals("1h 0m", formatTotalDuration(3_600_000L))
+        assertEquals("0m", formatTotalDuration(-5L))
+    }
+
+    @Test
+    fun `playlistCountLabel pluralises`() {
+        assertEquals("1 playlist", playlistCountLabel(1))
+        assertEquals("6 playlists", playlistCountLabel(6))
+    }
+
+    @Test
     fun `songCountLabel pluralises`() {
         assertEquals("0 songs", songCountLabel(0))
         assertEquals("1 song", songCountLabel(1))

@@ -50,6 +50,8 @@ class MiniPlayerDockingTest {
                     onPlayPause = {},
                     onDismissPlayer = { player = PlayerState() },
                     onPlaySong = { songs, index, origin -> played = Triple(songs, index, origin) },
+                    onShufflePlay = { _, _ -> },
+                    playlists = FakePlaylistsHost(),
                 )
             }
         }

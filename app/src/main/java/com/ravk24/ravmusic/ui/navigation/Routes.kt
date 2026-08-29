@@ -23,5 +23,9 @@ data object Settings : NavKey
 @Serializable
 data class FolderDetail(val folderId: String, val name: String) : NavKey
 
+/** A playlist's tracks, pushed above the Playlists tab; hides the bottom navigation bar. */
+@Serializable
+data class PlaylistDetail(val playlistId: Long) : NavKey
+
 /** Keys whose screens show the bottom navigation bar. */
 val TabRoutes: Set<NavKey> = setOf(Playlists, Folders)

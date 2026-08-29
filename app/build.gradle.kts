@@ -4,6 +4,9 @@ plugins {
     alias(libs.plugins.compose.compiler)
     // Required by Navigation 3: NavKey routes must be @Serializable for rememberNavBackStack.
     alias(libs.plugins.kotlin.serialization)
+    // Room annotation processing via KSP (kapt is incompatible with built-in Kotlin).
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 android {
@@ -38,6 +41,11 @@ android {
     }
 }
 
+room {
+    // Versioned schema JSON is committed so later migrations can be written and tested.
+    schemaDirectory("$projectDir/schemas")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -55,6 +63,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -62,6 +72,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.room.testing)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

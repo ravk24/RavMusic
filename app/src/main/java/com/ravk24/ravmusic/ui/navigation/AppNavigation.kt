@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -16,16 +17,22 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.ravk24.ravmusic.PlaylistsHost
 import com.ravk24.ravmusic.data.model.Song
+import com.ravk24.ravmusic.data.model.missingTrackIds
 import com.ravk24.ravmusic.data.repo.LibraryState
 import com.ravk24.ravmusic.permission.PermissionState
 import com.ravk24.ravmusic.playback.PlayerState
@@ -34,15 +41,18 @@ import com.ravk24.ravmusic.ui.folders.FolderDetailScreen
 import com.ravk24.ravmusic.ui.folders.FoldersScreen
 import com.ravk24.ravmusic.ui.permission.AudioPermissionGate
 import com.ravk24.ravmusic.ui.player.MiniPlayer
+import com.ravk24.ravmusic.ui.playlists.PlaylistDetailScreen
 import com.ravk24.ravmusic.ui.playlists.PlaylistsScreen
 import com.ravk24.ravmusic.ui.settings.SettingsScreen
+import kotlinx.coroutines.launch
 
 /**
  * The application shell: a Navigation 3 back stack, the two-tab bottom bar, the docked mini
  * player, and the audio permission gate around every library-backed screen.
  *
  * Back-stack model: the stack is always `[Playlists]` or `[Playlists, Folders]`, optionally with
- * one detail screen on top — `Settings` above either tab, `FolderDetail` above Folders. That gives
+ * one detail screen on top — `Settings` above either tab, `PlaylistDetail` above Playlists,
+ * `FolderDetail` above Folders. That gives
  * the spec'd back behaviour for free: back from a detail returns to its tab, back from Folders
  * lands on Playlists, back from Playlists (stack size 1) leaves the app. Only tab roots show the
  * bottom bar; the mini player sits above it on every route while a queue is loaded.
@@ -63,11 +73,14 @@ fun AppNavigation(
     onPlayPause: () -> Unit,
     onDismissPlayer: () -> Unit,
     onPlaySong: (songs: List<Song>, index: Int, origin: String) -> Unit,
+    onShufflePlay: (songs: List<Song>, origin: String) -> Unit,
+    playlists: PlaylistsHost,
     modifier: Modifier = Modifier,
 ) {
     val backStack = rememberNavBackStack(Playlists)
-    val playlistsListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val playlistsGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
     val foldersListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val scope = rememberCoroutineScope()
 
     val current: NavKey = backStack.lastOrNull() ?: Playlists
     val showBottomBar = current in TabRoutes
@@ -148,9 +161,13 @@ fun AppNavigation(
                             onRequestPermission = onRequestPermission,
                             onOpenAppSettings = onOpenAppSettings,
                         ) {
+                            val list by playlists.playlists.collectAsStateWithLifecycle()
                             PlaylistsScreen(
-                                listState = playlistsListState,
+                                playlists = list,
+                                gridState = playlistsGridState,
                                 onOpenSettings = { backStack.add(Settings) },
+                                onOpenPlaylist = { backStack.add(PlaylistDetail(it.id)) },
+                                onCreate = { name -> scope.launch { playlists.create(name) } },
                             )
                         }
                     }
@@ -184,8 +201,39 @@ fun AppNavigation(
                                 onBack = { backStack.removeLastOrNull() },
                                 onSongClick = { song -> onPlaySong(songs, songs.indexOf(song), key.name) },
                                 nowPlayingId = playerState.nowPlaying?.songId,
+                                playlists = playlists,
                             )
                         }
+                    }
+                    entry<PlaylistDetail> { key ->
+                        val list by playlists.playlists.collectAsStateWithLifecycle()
+                        val tracks by playlists.tracks(key.playlistId).collectAsStateWithLifecycle()
+                        val playlist = list.firstOrNull { it.id == key.playlistId }
+                        val missing = remember(tracks, libraryState) { missingTrackIds(tracks, libraryState) }
+                        val origin = playlist?.name ?: "Playlist"
+                        fun playable(): List<Song> = tracks.filter { it.id !in missing }.map { it.toSong() }
+                        PlaylistDetailScreen(
+                            playlist = playlist,
+                            tracks = tracks,
+                            missingIds = missing,
+                            nowPlayingId = playerState.nowPlaying?.songId,
+                            onBack = { backStack.removeLastOrNull() },
+                            onPlay = { index ->
+                                val queue = playable()
+                                val tapped = tracks.getOrNull(index)
+                                val start = queue.indexOfFirst { it.uri == tapped?.uri }.coerceAtLeast(0)
+                                if (queue.isNotEmpty()) onPlaySong(queue, start, origin)
+                            },
+                            onShufflePlay = { playable().takeIf { it.isNotEmpty() }?.let { onShufflePlay(it, origin) } },
+                            onRename = { playlists.rename(key.playlistId, it) },
+                            onDelete = {
+                                playlists.delete(key.playlistId)
+                                backStack.removeLastOrNull()
+                            },
+                            onRemoveTrack = playlists::removeTrack,
+                            onMove = { from, to -> playlists.move(key.playlistId, from, to) },
+                            onCleanUp = { playlists.cleanUp(key.playlistId, missing) },
+                        )
                     }
                     entry<Settings> {
                         SettingsScreen(onBack = { backStack.removeLastOrNull() })

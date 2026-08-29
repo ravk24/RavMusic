@@ -12,8 +12,8 @@ interface PlayerBridge {
     /** Connects to the playback service if not already connected. Idempotent. */
     fun connect()
 
-    /** Replaces the queue with [plan] and starts playing. */
-    fun play(plan: QueuePlan)
+    /** Replaces the queue with [plan] and starts playing; [shuffle] sets the session's shuffle mode. */
+    fun play(plan: QueuePlan, shuffle: Boolean = false)
 
     fun togglePlayPause()
 

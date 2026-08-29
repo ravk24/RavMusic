@@ -93,6 +93,20 @@ class PlaybackServiceTest {
     }
 
     @Test
+    fun shuffleFlagFollowsThePlan() {
+        onMain { connection.play(planQueue(listOf(tone(1, "A"), tone(2, "B")), 0, "Test")!!, shuffle = true) }
+        await("shuffled playback") { it.isPlaying }
+        var shuffled: Boolean? = null
+        onMain { shuffled = connection.shuffleModeEnabledForTest() }
+        assertTrue(shuffled == true)
+
+        onMain { connection.play(planQueue(listOf(tone(1, "A")), 0, "Test")!!, shuffle = false) }
+        await("unshuffled playback") { it.isPlaying && it.nowPlaying?.songId == 1L }
+        onMain { shuffled = connection.shuffleModeEnabledForTest() }
+        assertFalse(shuffled == true)
+    }
+
+    @Test
     fun missingFileMidQueueIsSkipped() {
         onMain { connection.play(planQueue(listOf(tone(1, "First"), missing(2), tone(3, "Third")), 0, "Test")!!) }
         val third = await("third item after skipping the missing one", timeoutMs = 30_000L) {

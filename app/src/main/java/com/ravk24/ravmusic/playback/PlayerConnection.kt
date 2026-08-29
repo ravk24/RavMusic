@@ -57,7 +57,8 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
         )
     }
 
-    override fun play(plan: QueuePlan) = withController { c ->
+    override fun play(plan: QueuePlan, shuffle: Boolean) = withController { c ->
+        c.shuffleModeEnabled = shuffle
         c.setMediaItems(plan.toMediaItems(), plan.startIndex, C.TIME_UNSET)
         c.prepare()
         c.play()
@@ -83,6 +84,9 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
         c.clearMediaItems()
         publish(c)
     }
+
+    /** Test hook: the controller's shuffle mode, or null while disconnected. */
+    fun shuffleModeEnabledForTest(): Boolean? = controller?.shuffleModeEnabled
 
     override fun refreshPosition() {
         controller?.let { c ->

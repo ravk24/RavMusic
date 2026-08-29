@@ -15,3 +15,14 @@ fun formatDuration(ms: Long): String {
 
 /** "1 song" / "572 songs". */
 fun songCountLabel(count: Int): String = if (count == 1) "1 song" else "$count songs"
+
+/** Playlist totals: "2h 58m", "51m", "0m"; seconds are dropped. */
+fun formatTotalDuration(ms: Long): String {
+    val totalMinutes = (ms / 60_000L).coerceAtLeast(0L)
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
+}
+
+/** "1 playlist" / "6 playlists". */
+fun playlistCountLabel(count: Int): String = if (count == 1) "1 playlist" else "$count playlists"

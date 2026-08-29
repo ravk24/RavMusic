@@ -68,6 +68,12 @@ private fun AppRoot(viewModel: AppViewModel = viewModel()) {
     )
     val playerState by playerViewModel.state.collectAsStateWithLifecycle()
 
+    val playlistsViewModel: PlaylistsViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer { PlaylistsViewModel(container.playlistRepository) }
+        },
+    )
+
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         viewModel.refresh(checker)
     }
@@ -102,6 +108,8 @@ private fun AppRoot(viewModel: AppViewModel = viewModel()) {
         playerState = playerState,
         onPlayPause = playerViewModel::togglePlayPause,
         onDismissPlayer = playerViewModel::stopAndClear,
-        onPlaySong = playerViewModel::playSongs,
+        onPlaySong = { songs, index, origin -> playerViewModel.playSongs(songs, index, origin) },
+        onShufflePlay = playerViewModel::shufflePlay,
+        playlists = playlistsViewModel,
     )
 }

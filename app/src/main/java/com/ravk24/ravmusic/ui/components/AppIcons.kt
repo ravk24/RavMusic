@@ -43,6 +43,32 @@ object AppIcons {
 
     val PlayArrow: ImageVector by lazy { materialIcon("PlayArrow", "M8 5v14l11-7z") }
 
+    val Shuffle: ImageVector by lazy {
+        materialIcon(
+            "Shuffle",
+            "M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z",
+        )
+    }
+
+    val DragHandle: ImageVector by lazy {
+        materialIcon(
+            "DragHandle",
+            "M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z",
+        )
+    }
+
+    val Add: ImageVector by lazy { materialIcon("Add", "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z") }
+
+    val Close: ImageVector by lazy {
+        materialIcon("Close", "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z")
+    }
+
+    val Check: ImageVector by lazy { materialIcon("Check", "M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z") }
+
+    val Delete: ImageVector by lazy {
+        materialIcon("Delete", "M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z")
+    }
+
     val Pause: ImageVector by lazy { materialIcon("Pause", "M6 19h4V5H6v14zm8-14v14h4V5h-4z") }
 
     /** Row chevron; mirrored automatically in RTL layouts. */

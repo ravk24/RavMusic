@@ -2,8 +2,10 @@ package com.ravk24.ravmusic
 
 import android.app.Application
 import android.content.Context
+import com.ravk24.ravmusic.data.db.RavMusicDatabase
 import com.ravk24.ravmusic.data.mediastore.MediaStoreScanner
 import com.ravk24.ravmusic.data.repo.LibraryRepository
+import com.ravk24.ravmusic.data.repo.PlaylistRepository
 import com.ravk24.ravmusic.playback.PlayerConnection
 
 /**
@@ -33,4 +35,9 @@ class AppContainer(context: Context) {
 
     /** The UI's client of the playback service. One per process; connected by the player ViewModel. */
     val playerConnection: PlayerConnection by lazy { PlayerConnection(appContext) }
+
+    /** Persisted playlists (Room). Opened lazily on first use. */
+    val database: RavMusicDatabase by lazy { RavMusicDatabase.build(appContext) }
+
+    val playlistRepository: PlaylistRepository by lazy { PlaylistRepository(database.playlistDao()) }
 }

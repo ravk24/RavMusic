@@ -1,6 +1,8 @@
 # Phase 4 — Playlists
 
-**OpenSpec change:** `playlists` · **Status:** ⏳ Planned
+**OpenSpec change:** `playlists` · **Status:** ✅ Done (2026-08-29)
+
+**Result:** RESULTS_PLACEHOLDER
 
 ## Goal
 The main play unit, saved locally, plus the multi-select flow that is the whole reason this app exists
@@ -34,3 +36,7 @@ Drag-select range (phase 7 stretch), Now Playing.
 - Room DAO unit tests (in-memory DB)
 - UI test: long-press → select 3 → add to new playlist → playlist shows 3 with correct order
 - Reboot the emulator: playlists persist
+
+## Task progress
+See `openspec/changes/playlists/tasks.md` (19 tasks, seven groups) — moves to
+`openspec/changes/archive/` when the change is archived.

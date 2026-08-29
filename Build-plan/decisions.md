@@ -179,3 +179,43 @@ disagreed or were silent in six places. Resolved as follows.
 - **Decision:** All three are install-time permissions; the service declares
   `foregroundServiceType="mediaPlayback"`. Media-session notifications are exempt from the notification
   runtime permission, so `audio-permission`'s "exactly one runtime permission" still holds.
+
+## 2026-08-29 — Playlists design (`openspec/changes/playlists/design.md`)
+
+### D-30 Room 2.8.4 via KSP 2.3.11; schema exported and committed
+- **Decision:** `androidx.room` Gradle plugin with `schemaDirectory("$projectDir/schemas")`, `room-runtime` +
+  `ksp(room-compiler)`, database version 1 with `exportSchema = true` (`app/schemas/…/1.json` is in git).
+- **Why:** kapt is incompatible with AGP's built-in Kotlin; KSP ≥ 2.3.0 is independent of the Kotlin version
+  and was verified to build with Kotlin 2.2.10. Any later schema change needs a migration plus a
+  `MigrationTestHelper` test against the committed JSON.
+- **Rules out:** hand-written SQLite, SQLDelight.
+
+### D-31 Playlists snapshot title/artist/duration; the library is still never cached
+- **Decision:** `PlaylistTrackEntity` stores `mediaStoreUri` + title, artist, duration and a position
+  (spec F3's model). Playlists render without MediaStore; D-05 is untouched because only user data persists.
+
+### D-32 Missing = "not in the loaded library snapshot"
+- **Decision:** `missingTrackIds(tracks, libraryState)` flags a track when the library is `Loaded` and its
+  URI is absent; nothing is flagged while `Idle`/`Loading`. Missing tracks are greyed, filtered out of the
+  queue, and removed by "Clean up".
+- **Why:** Instant and consistent with the live query; the service's error-skipper (D-26) covers races.
+
+### D-33 `PlaylistsHost` interface, Activity-scoped `PlaylistsViewModel`
+- **Decision:** `AppNavigation` takes one `playlists: PlaylistsHost` instead of a dozen lambdas; the
+  ViewModel implements it over `PlaylistStore` (Room) and tests use an in-memory fake or the real ViewModel
+  on `Room.inMemoryDatabaseBuilder`. Track flows are `stateIn`-cached per playlist id.
+
+### D-34 Shuffle is a flag on the existing play path
+- **Decision:** `PlayerBridge.play(plan, shuffle)` sets `shuffleModeEnabled` before `setMediaItems`;
+  `PlayerViewModel.shufflePlay` picks a random start index. Folder taps and playlist Play pass `false`, so a
+  previous Shuffle play never leaks into the next queue. `PlaylistTrack.toSong()` reuses `planQueue`.
+
+### D-35 Hand-rolled drag reorder + Material 3 swipe remove, both in `ReorderableList.kt`
+- **Decision:** `detectDragGesturesAfterLongPress` on the handle only, target index from
+  `LazyListState.layoutInfo`, `onMove(from, to)` on release; `SwipeToDismissBox` end-to-start removes.
+- **Why:** No third-party reorder library (spec: lightweight); the phase page asked for gesture code in one place.
+
+### D-36 Selection state is `rememberSaveable` in the folder detail; no per-row overflow menu
+- **Decision:** `selectedIds` survives scrolling and rotation and dies with the Nav3 entry (spec F2: "survives
+  scrolling but not navigation away"). Long-pressing one song is the "add a single song" path, so the spec's
+  optional per-row overflow menu is not built.

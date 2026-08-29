@@ -1,6 +1,7 @@
 package com.ravk24.ravmusic.ui.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -24,24 +26,31 @@ const val UNKNOWN_ARTIST_LABEL = "Unknown artist"
 
 /**
  * One song line (design canvas artboard 1d): title, artist or "Unknown artist", duration.
- * [isCurrent] highlights the song the player is on (exposed as `selected` for tests).
+ * [isCurrent] highlights the song the player is on (exposed as `selected` for tests);
+ * [dimmed] greys a song whose file is missing; [leading] hosts a checkbox or drag handle.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SongRow(
     song: Song,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isCurrent: Boolean = false,
+    dimmed: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    leading: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .semantics { selected = isCurrent }
+            .alpha(if (dimmed) 0.45f else 1f)
             .padding(horizontal = 16.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        leading?.invoke()
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = song.title,
@@ -80,6 +89,12 @@ private fun SongRowPreview() {
             SongRow(
                 song = Song(2, "content://media/2", "A very long song title that will not fit on one line at all", null, 3_725_000L, "m", "Music"),
                 onClick = {},
+                isCurrent = true,
+            )
+            SongRow(
+                song = Song(3, "content://media/3", "Deleted file", "Hyaline", 200_000L, "m", "Music"),
+                onClick = {},
+                dimmed = true,
             )
         }
     }

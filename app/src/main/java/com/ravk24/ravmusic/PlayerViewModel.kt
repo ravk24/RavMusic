@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 /**
  * Activity-scoped bridge between the UI and the playback session. Connects on creation, releases
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 class PlayerViewModel(
     private val bridge: PlayerBridge,
     private val tickMs: Long = 500L,
+    private val random: Random = Random.Default,
 ) : ViewModel() {
 
     val state: StateFlow<PlayerState> = bridge.state
@@ -37,9 +39,15 @@ class PlayerViewModel(
         }
     }
 
-    /** Tap-to-play from a folder: the folder becomes the queue, starting at [index]. */
-    fun playSongs(songs: List<Song>, index: Int, origin: String) {
-        planQueue(songs, index, origin)?.let(bridge::play)
+    /** Tap-to-play: [songs] become the queue, starting at [index]; shuffle is off unless asked for. */
+    fun playSongs(songs: List<Song>, index: Int, origin: String, shuffle: Boolean = false) {
+        planQueue(songs, index, origin)?.let { bridge.play(it, shuffle) }
+    }
+
+    /** Spec F5: Shuffle Play enables shuffle and starts from a random track. */
+    fun shufflePlay(songs: List<Song>, origin: String) {
+        if (songs.isEmpty()) return
+        playSongs(songs, random.nextInt(songs.size), origin, shuffle = true)
     }
 
     fun togglePlayPause() = bridge.togglePlayPause()

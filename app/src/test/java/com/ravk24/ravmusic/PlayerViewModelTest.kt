@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -32,8 +33,9 @@ class PlayerViewModelTest {
         var toggles = 0
         var stops = 0
         var lastPlan: QueuePlan? = null
+        var lastShuffle: Boolean? = null
         override fun connect() { connects++ }
-        override fun play(plan: QueuePlan) { lastPlan = plan }
+        override fun play(plan: QueuePlan, shuffle: Boolean) { lastPlan = plan; lastShuffle = shuffle }
         override fun togglePlayPause() { toggles++ }
         override fun stopAndClear() { stops++ }
         override fun refreshPosition() { refreshes++ }
@@ -74,9 +76,26 @@ class PlayerViewModelTest {
         assertEquals(listOf(1L, 2L), bridge.lastPlan!!.songs.map { it.id })
         assertEquals(1, bridge.lastPlan!!.startIndex)
         assertEquals("Rock", bridge.lastPlan!!.origin)
+        assertEquals(false, bridge.lastShuffle)
 
         bridge.lastPlan = null
         vm.playSongs(emptyList(), 0, "Empty")
+        assertNull(bridge.lastPlan)
+    }
+
+    @Test
+    fun `shufflePlay enables shuffle and starts within range`() = runTest(dispatcher) {
+        val bridge = FakeBridge()
+        val songs = listOf(song(1), song(2), song(3))
+        val vm = PlayerViewModel(bridge, random = kotlin.random.Random(7))
+        repeat(10) {
+            vm.shufflePlay(songs, "Late night")
+            assertEquals(true, bridge.lastShuffle)
+            assertTrue(bridge.lastPlan!!.startIndex in 0..2)
+            assertEquals("Late night", bridge.lastPlan!!.origin)
+        }
+        bridge.lastPlan = null
+        vm.shufflePlay(emptyList(), "x")
         assertNull(bridge.lastPlan)
     }
 
