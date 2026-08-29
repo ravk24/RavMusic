@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     // Kotlin itself is provided by AGP 9's built-in Kotlin support; only compiler plugins are applied here.
@@ -7,6 +9,26 @@ plugins {
     // Room annotation processing via KSP (kapt is incompatible with built-in Kotlin).
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+}
+
+/**
+ * Release signing (Phase 8, design D1): `keystore.properties` at the repo root (git-ignored), or the
+ * same four names as environment variables. Null when the store file is not configured.
+ */
+data class ReleaseSigning(val storeFile: String, val storePassword: String, val keyAlias: String, val keyPassword: String)
+
+val releaseSigning: ReleaseSigning? = run {
+    val props = Properties()
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { props.load(it) }
+    fun prop(name: String): String? = props.getProperty(name)?.takeIf { it.isNotBlank() } ?: System.getenv(name)?.takeIf { it.isNotBlank() }
+    val store = prop("RAVMUSIC_STORE_FILE") ?: return@run null
+    ReleaseSigning(
+        storeFile = store,
+        storePassword = prop("RAVMUSIC_STORE_PASSWORD") ?: error("RAVMUSIC_STORE_PASSWORD is missing"),
+        keyAlias = prop("RAVMUSIC_KEY_ALIAS") ?: error("RAVMUSIC_KEY_ALIAS is missing"),
+        keyPassword = prop("RAVMUSIC_KEY_PASSWORD") ?: error("RAVMUSIC_KEY_PASSWORD is missing"),
+    )
 }
 
 android {
@@ -25,11 +47,25 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        // Signed only where the secrets exist (this machine); elsewhere the release APK is unsigned.
+        if (releaseSigning != null) {
+            create("release") {
+                storeFile = file(releaseSigning.storeFile)
+                storePassword = releaseSigning.storePassword
+                keyAlias = releaseSigning.keyAlias
+                keyPassword = releaseSigning.keyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // R8 code shrinking + resource shrinking; project keep rules live in src/main/keepRules/.
             optimization {
-                enable = false
+                enable = true
             }
+            signingConfig = signingConfigs.findByName("release")
         }
     }
     compileOptions {

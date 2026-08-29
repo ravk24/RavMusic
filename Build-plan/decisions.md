@@ -322,3 +322,23 @@ disagreed or were silent in six places. Resolved as follows.
   JVM-tested. `Modifier.dragSelect` on the `LazyColumn` waits out the long-press timeout itself, reads
   moves in `PointerEventPass.Initial` (so the rows' `combinedClickable` keeps working) and consumes them
   so the list does not scroll. No auto-scroll at the edges in this change.
+
+## 2026-08-29 — Release design (`openspec/changes/release/design.md`)
+
+### D-53 Signing secrets live in a git-ignored `keystore.properties`, never in the build script
+- **Decision:** `app/build.gradle.kts` reads `RAVMUSIC_STORE_FILE / _STORE_PASSWORD / _KEY_ALIAS / _KEY_PASSWORD`
+  from `keystore.properties` at the repo root (falling back to environment variables) and creates the
+  `release` signing config only when the store file is configured; otherwise `assembleRelease` yields an
+  unsigned APK. The keystore itself is `%USERPROFILE%\.android\ravmusic-release.jks`, alias `ravmusic`.
+- **Why:** `local.properties` is owned (and may be rewritten) by Android Studio; the wizard is not
+  repeatable from the command line.
+
+### D-54 R8 and resource shrinking are on for release; keep rules only for verified breakage
+- **Decision:** `optimization { enable = true }`; `app/src/main/keepRules/rules.keep` stays empty unless a
+  smoke test on the release build fails. Compose, Media3, Room, kotlinx.serialization, DataStore and
+  Navigation 3 all ship consumer rules.
+
+### D-55 `ACCESS_NETWORK_STATE` is removed from the merged manifest
+- **Decision:** Media3 declares it for its bandwidth meter; the app plays local files only and has no
+  `INTERNET`, so the permission is stripped with `tools:node="remove"`. The release APK lists exactly
+  the storage and foreground-service permissions.

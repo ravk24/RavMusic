@@ -24,7 +24,7 @@ The authoritative *machine-readable* plan for each phase lives in `openspec/chan
 | 5 | [Now Playing](phases/05-now-playing.md) — full screen, seek, shuffle/repeat, queue | `now-playing` | ✅ Done |
 | 6 | [Sleep timer](phases/06-sleep-timer.md) | `sleep-timer` | ✅ Done |
 | 7 | [Polish](phases/07-polish.md) — settings, missing files, empty states, motion, drag-select | `polish` | ✅ Done |
-| 8 | [Ship](phases/08-ship.md) — release build, sign, sideload | `release` | ⏳ Planned |
+| 8 | [Ship](phases/08-ship.md) — release build, sign, sideload | `release` | ✅ Done |
 
 Each phase ends with something installable on the actual phone.
 
@@ -46,6 +46,40 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat testDebugUnitTest                   # JVM unit tests
 .\gradlew.bat connectedDebugAndroidTest           # Compose UI tests (needs a device/emulator)
 ```
+
+## Release build, signing, sideloading (Phase 8)
+
+The phone runs a shrunk (R8 + resource shrinking), locally signed release APK. Signing secrets are
+read from `keystore.properties` at the repo root (git-ignored) or from environment variables with the
+same names; without them `assembleRelease` still works and produces an **unsigned** APK.
+
+```properties
+# keystore.properties  (never committed)
+RAVMUSIC_STORE_FILE=C:/Users/<you>/.android/ravmusic-release.jks
+RAVMUSIC_STORE_PASSWORD=...
+RAVMUSIC_KEY_ALIAS=ravmusic
+RAVMUSIC_KEY_PASSWORD=...
+```
+
+The keystore was created once on 2026-08-29 with
+`keytool -genkeypair -keystore %USERPROFILE%\.android\ravmusic-release.jks -storetype PKCS12 -alias ravmusic -keyalg RSA -keysize 2048 -validity 10000`.
+**Back it up** (e.g. alongside your other secrets): a new keystore means the phone must uninstall the
+old build first, which deletes the playlists.
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+.\gradlew.bat assembleRelease                     # -> app/build/outputs/apk/release/app-release.apk (+ mapping/release/mapping.txt)
+$bt = "$env:LOCALAPPDATA\Android\Sdk\build-tools\36.0.0"
+& "$bt\apksigner.bat" verify --print-certs app\build\outputs\apk\release\app-release.apk   # signed by CN=RavMusic
+& "$bt\aapt2.exe" dump permissions app\build\outputs\apk\release\app-release.apk           # no INTERNET, ever
+```
+
+**Updating the phone (three steps):** bump `versionCode` (and `versionName` if you like) in
+`app/build.gradle.kts` → `assembleRelease` → copy `app-release.apk` to the phone and open it (or
+`adb install -r app-release.apk`). Same signature = installs over the old version; playlists and
+settings survive. The first install needs "Install unknown apps" enabled for whatever opens the
+file (Files, Drive, the browser…). A debug build cannot be updated by a release build (different
+signature): uninstall it first.
 
 ## Emulator
 
