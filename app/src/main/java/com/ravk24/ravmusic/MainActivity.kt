@@ -106,10 +106,7 @@ private fun AppRoot(viewModel: AppViewModel = viewModel()) {
         libraryState = libraryState,
         onRefreshLibrary = libraryViewModel::refresh,
         playerState = playerState,
-        onPlayPause = playerViewModel::togglePlayPause,
-        onDismissPlayer = playerViewModel::stopAndClear,
-        onPlaySong = { songs, index, origin -> playerViewModel.playSongs(songs, index, origin) },
-        onShufflePlay = playerViewModel::shufflePlay,
+        player = remember(playerViewModel) { playerViewModel.actions() },
         playlists = playlistsViewModel,
     )
 }

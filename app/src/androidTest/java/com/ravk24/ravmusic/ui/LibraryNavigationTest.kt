@@ -14,6 +14,7 @@ import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ravk24.ravmusic.data.repo.LibraryState
 import com.ravk24.ravmusic.permission.PermissionState
+import com.ravk24.ravmusic.playback.PlayerActions
 import com.ravk24.ravmusic.playback.PlayerState
 import com.ravk24.ravmusic.ui.navigation.AppNavigation
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
@@ -44,10 +45,7 @@ class LibraryNavigationTest {
                     libraryState = library,
                     onRefreshLibrary = {},
                     playerState = PlayerState(),
-                    onPlayPause = {},
-                    onDismissPlayer = {},
-                    onPlaySong = { _, _, _ -> },
-                    onShufflePlay = { _, _ -> },
+                    player = PlayerActions.none(),
                     playlists = FakePlaylistsHost(),
                 )
             }

@@ -19,6 +19,7 @@ import com.ravk24.ravmusic.data.db.RavMusicDatabase
 import com.ravk24.ravmusic.data.model.Song
 import com.ravk24.ravmusic.data.repo.PlaylistRepository
 import com.ravk24.ravmusic.permission.PermissionState
+import com.ravk24.ravmusic.playback.PlayerActions
 import com.ravk24.ravmusic.playback.PlayerState
 import com.ravk24.ravmusic.ui.navigation.AppNavigation
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
@@ -66,10 +67,7 @@ class AddToPlaylistFlowTest {
                     libraryState = FakeLibrary.loaded(FakeLibrary.manyFolders(1).let { FakeLibrary.snapshot() }),
                     onRefreshLibrary = {},
                     playerState = PlayerState(),
-                    onPlayPause = {},
-                    onDismissPlayer = {},
-                    onPlaySong = { _, _, _ -> },
-                    onShufflePlay = { songs, origin -> shuffled = songs to origin },
+                    player = PlayerActions.none().copy(onShufflePlay = { songs, origin -> shuffled = songs to origin }),
                     playlists = viewModel,
                 )
             }

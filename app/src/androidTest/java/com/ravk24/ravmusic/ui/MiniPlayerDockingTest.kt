@@ -13,6 +13,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ravk24.ravmusic.data.model.Song
 import com.ravk24.ravmusic.permission.PermissionState
 import com.ravk24.ravmusic.playback.NowPlaying
+import com.ravk24.ravmusic.playback.PlayerActions
 import com.ravk24.ravmusic.playback.PlayerState
 import com.ravk24.ravmusic.ui.navigation.AppNavigation
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
@@ -47,10 +48,10 @@ class MiniPlayerDockingTest {
                     libraryState = FakeLibrary.loaded(),
                     onRefreshLibrary = {},
                     playerState = player,
-                    onPlayPause = {},
-                    onDismissPlayer = { player = PlayerState() },
-                    onPlaySong = { songs, index, origin -> played = Triple(songs, index, origin) },
-                    onShufflePlay = { _, _ -> },
+                    player = PlayerActions.none().copy(
+                        onDismiss = { player = PlayerState() },
+                        onPlaySongs = { songs, index, origin -> played = Triple(songs, index, origin) },
+                    ),
                     playlists = FakePlaylistsHost(),
                 )
             }

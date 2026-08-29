@@ -15,8 +15,8 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * UI-process client of [PlaybackService]. Owns one `MediaController`, mirrors the player into a
- * [PlayerState] value, and forwards commands. Connecting is asynchronous; a single command issued
- * before the controller is ready is kept and replayed once it connects.
+ * [PlayerState] value, and forwards commands. Connecting is asynchronous; commands issued before
+ * the controller is ready are queued and replayed in order once it connects.
  *
  * Must be used from the main thread (Media3 controllers are looper-bound).
  */
@@ -27,7 +27,9 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
 
     private var future: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
-    private var pending: ((MediaController) -> Unit)? = null
+
+    /** Commands issued before the controller connected, replayed in order once it does. */
+    private val pending = ArrayDeque<(MediaController) -> Unit>()
 
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) = publish(player)
@@ -50,8 +52,7 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
                 controller = c
                 c.addListener(listener)
                 publish(c)
-                pending?.invoke(c)
-                pending = null
+                while (pending.isNotEmpty()) pending.removeFirst().invoke(c)
             },
             ContextCompat.getMainExecutor(context),
         )
@@ -95,12 +96,59 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
         }
     }
 
+    override fun seekTo(positionMs: Long) = withController { c ->
+        c.seekTo(positionMs.coerceAtLeast(0L))
+        publish(c)
+    }
+
+    override fun next() = withController { c -> c.seekToNext() }
+
+    override fun previous() = withController { c -> c.seekToPrevious() }
+
+    override fun setShuffle(enabled: Boolean) = withController { c -> c.shuffleModeEnabled = enabled }
+
+    override fun setRepeat(mode: RepeatMode) = withController { c ->
+        c.repeatMode = when (mode) {
+            RepeatMode.OFF -> Player.REPEAT_MODE_OFF
+            RepeatMode.ALL -> Player.REPEAT_MODE_ALL
+            RepeatMode.ONE -> Player.REPEAT_MODE_ONE
+        }
+    }
+
+    override fun jumpToQueuePosition(position: Int) = withController { c ->
+        val entry = _state.value.queue.getOrNull(position) ?: return@withController
+        c.seekToDefaultPosition(entry.mediaIndex)
+        c.play()
+    }
+
+    override fun moveInQueue(from: Int, to: Int) = withController { c ->
+        val queue = _state.value.queue
+        if (from !in queue.indices || to !in queue.indices || from == to) return@withController
+        if (!c.shuffleModeEnabled) {
+            // Play order == item order: queue positions are media indices.
+            c.moveMediaItem(queue[from].mediaIndex, queue[to].mediaIndex)
+        } else {
+            // The controller cannot set a custom shuffle order: freeze the shown order as the
+            // queue, turn shuffle off, then apply the move (design D4).
+            val items = queue.map { c.getMediaItemAt(it.mediaIndex) }
+            val currentPos = _state.value.queueIndex.coerceAtLeast(0)
+            val positionMs = c.currentPosition
+            val wasPlaying = c.playWhenReady
+            c.shuffleModeEnabled = false
+            c.setMediaItems(items, currentPos, positionMs)
+            c.prepare()
+            c.moveMediaItem(from, to)
+            c.playWhenReady = wasPlaying
+        }
+        publish(c)
+    }
+
     override fun release() {
         controller?.removeListener(listener)
         controller = null
         future?.let { MediaController.releaseFuture(it) }
         future = null
-        pending = null
+        pending.clear()
         _state.value = PlayerState()
     }
 
@@ -109,18 +157,37 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
         if (c != null) {
             block(c)
         } else {
-            pending = block
+            pending.addLast(block)
             connect()
         }
     }
 
     private fun publish(player: Player) {
         val item = player.currentMediaItem
+        val timeline = player.currentTimeline
+        val shuffle = player.shuffleModeEnabled
+        val order = playOrder(
+            count = timeline.windowCount,
+            currentIndex = player.currentMediaItemIndex,
+            first = timeline.getFirstWindowIndex(shuffle).takeIf { it != C.INDEX_UNSET },
+        ) { i -> timeline.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, shuffle).takeIf { it != C.INDEX_UNSET } }
+        val queue = order.mediaIndices.map { index ->
+            val entry = nowPlayingFrom(player.getMediaItemAt(index))
+            QueueEntry(songId = entry.songId, title = entry.title, artist = entry.artist, mediaIndex = index)
+        }
         _state.value = PlayerState(
             nowPlaying = item?.let(::nowPlayingFrom),
             isPlaying = player.isPlaying,
             positionMs = player.currentPosition.coerceAtLeast(0L),
             durationMs = durationOf(player),
+            shuffleEnabled = shuffle,
+            repeatMode = when (player.repeatMode) {
+                Player.REPEAT_MODE_ALL -> RepeatMode.ALL
+                Player.REPEAT_MODE_ONE -> RepeatMode.ONE
+                else -> RepeatMode.OFF
+            },
+            queue = queue,
+            queueIndex = order.currentPosition,
         )
     }
 

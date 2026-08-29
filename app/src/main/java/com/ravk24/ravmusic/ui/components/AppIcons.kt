@@ -71,6 +71,25 @@ object AppIcons {
 
     val Pause: ImageVector by lazy { materialIcon("Pause", "M6 19h4V5H6v14zm8-14v14h4V5h-4z") }
 
+    val SkipNext: ImageVector by lazy { materialIcon("SkipNext", "M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z") }
+
+    val SkipPrevious: ImageVector by lazy { materialIcon("SkipPrevious", "M6 6h2v12H6zm3.5 6l8.5 6V6z") }
+
+    val Repeat: ImageVector by lazy {
+        materialIcon("Repeat", "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z")
+    }
+
+    val RepeatOne: ImageVector by lazy {
+        materialIcon("RepeatOne", "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2V9h-1l-2 1v1h1.5v4H13z")
+    }
+
+    val ExpandMore: ImageVector by lazy { materialIcon("ExpandMore", "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z") }
+
+    /** Crescent moon for the sleep-timer chip. */
+    val Bedtime: ImageVector by lazy {
+        materialIcon("Bedtime", "M9.5 2c-1.82 0-3.53.5-5 1.35 2.99 1.73 5 4.95 5 8.65s-2.01 6.92-5 8.65C5.97 21.5 7.68 22 9.5 22c5.52 0 10-4.48 10-10S15.02 2 9.5 2z")
+    }
+
     /** Row chevron; mirrored automatically in RTL layouts. */
     val ChevronRight: ImageVector by lazy {
         materialIcon(

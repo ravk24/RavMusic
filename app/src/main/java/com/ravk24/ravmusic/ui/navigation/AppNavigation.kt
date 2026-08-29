@@ -17,6 +17,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -35,10 +36,12 @@ import com.ravk24.ravmusic.data.model.Song
 import com.ravk24.ravmusic.data.model.missingTrackIds
 import com.ravk24.ravmusic.data.repo.LibraryState
 import com.ravk24.ravmusic.permission.PermissionState
+import com.ravk24.ravmusic.playback.PlayerActions
 import com.ravk24.ravmusic.playback.PlayerState
 import com.ravk24.ravmusic.ui.components.AppIcons
 import com.ravk24.ravmusic.ui.folders.FolderDetailScreen
 import com.ravk24.ravmusic.ui.folders.FoldersScreen
+import com.ravk24.ravmusic.ui.nowplaying.NowPlayingScreen
 import com.ravk24.ravmusic.ui.permission.AudioPermissionGate
 import com.ravk24.ravmusic.ui.player.MiniPlayer
 import com.ravk24.ravmusic.ui.playlists.PlaylistDetailScreen
@@ -52,7 +55,7 @@ import kotlinx.coroutines.launch
  *
  * Back-stack model: the stack is always `[Playlists]` or `[Playlists, Folders]`, optionally with
  * one detail screen on top — `Settings` above either tab, `PlaylistDetail` above Playlists,
- * `FolderDetail` above Folders. That gives
+ * `FolderDetail` above Folders — and `NowPlaying` above any of those. That gives
  * the spec'd back behaviour for free: back from a detail returns to its tab, back from Folders
  * lands on Playlists, back from Playlists (stack size 1) leaves the app. Only tab roots show the
  * bottom bar; the mini player sits above it on every route while a queue is loaded.
@@ -70,10 +73,7 @@ fun AppNavigation(
     libraryState: LibraryState,
     onRefreshLibrary: () -> Unit,
     playerState: PlayerState,
-    onPlayPause: () -> Unit,
-    onDismissPlayer: () -> Unit,
-    onPlaySong: (songs: List<Song>, index: Int, origin: String) -> Unit,
-    onShufflePlay: (songs: List<Song>, origin: String) -> Unit,
+    player: PlayerActions,
     playlists: PlaylistsHost,
     modifier: Modifier = Modifier,
 ) {
@@ -84,6 +84,7 @@ fun AppNavigation(
 
     val current: NavKey = backStack.lastOrNull() ?: Playlists
     val showBottomBar = current in TabRoutes
+    val onNowPlaying = current == NowPlaying
 
     fun selectTab(tab: NavKey) {
         if (current == tab) return
@@ -98,15 +99,16 @@ fun AppNavigation(
         bottomBar = {
             // Mini player above the navigation bar on tabs; alone at the bottom on detail screens,
             // where it takes over the navigation-bar inset the NavigationBar would otherwise consume.
-            Column(
+            // Nothing at all while the full-screen player is open.
+            if (!onNowPlaying) Column(
                 modifier = if (showBottomBar) Modifier else Modifier.windowInsetsPadding(WindowInsets.navigationBars),
             ) {
                 if (playerState.hasQueue) {
                     MiniPlayer(
                         state = playerState,
-                        onPlayPause = onPlayPause,
-                        onExpand = {},
-                        onDismiss = onDismissPlayer,
+                        onPlayPause = player.onPlayPause,
+                        onExpand = { backStack.add(NowPlaying) },
+                        onDismiss = player.onDismiss,
                     )
                 }
                 if (showBottomBar) {
@@ -199,7 +201,7 @@ fun AppNavigation(
                                 folderName = key.name,
                                 songs = songs,
                                 onBack = { backStack.removeLastOrNull() },
-                                onSongClick = { song -> onPlaySong(songs, songs.indexOf(song), key.name) },
+                                onSongClick = { song -> player.onPlaySongs(songs, songs.indexOf(song), key.name) },
                                 nowPlayingId = playerState.nowPlaying?.songId,
                                 playlists = playlists,
                             )
@@ -222,9 +224,9 @@ fun AppNavigation(
                                 val queue = playable()
                                 val tapped = tracks.getOrNull(index)
                                 val start = queue.indexOfFirst { it.uri == tapped?.uri }.coerceAtLeast(0)
-                                if (queue.isNotEmpty()) onPlaySong(queue, start, origin)
+                                if (queue.isNotEmpty()) player.onPlaySongs(queue, start, origin)
                             },
-                            onShufflePlay = { playable().takeIf { it.isNotEmpty() }?.let { onShufflePlay(it, origin) } },
+                            onShufflePlay = { playable().takeIf { it.isNotEmpty() }?.let { player.onShufflePlay(it, origin) } },
                             onRename = { playlists.rename(key.playlistId, it) },
                             onDelete = {
                                 playlists.delete(key.playlistId)
@@ -233,6 +235,17 @@ fun AppNavigation(
                             onRemoveTrack = playlists::removeTrack,
                             onMove = { from, to -> playlists.move(key.playlistId, from, to) },
                             onCleanUp = { playlists.cleanUp(key.playlistId, missing) },
+                        )
+                    }
+                    entry<NowPlaying> {
+                        // The screen has nothing to show once the queue is gone: close it.
+                        LaunchedEffect(playerState.hasQueue) {
+                            if (!playerState.hasQueue && backStack.lastOrNull() == NowPlaying) backStack.removeLastOrNull()
+                        }
+                        NowPlayingScreen(
+                            state = playerState,
+                            actions = player,
+                            onCollapse = { backStack.removeLastOrNull() },
                         )
                     }
                     entry<Settings> {

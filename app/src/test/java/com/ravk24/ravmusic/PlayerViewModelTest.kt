@@ -5,6 +5,7 @@ import com.ravk24.ravmusic.playback.NowPlaying
 import com.ravk24.ravmusic.playback.PlayerBridge
 import com.ravk24.ravmusic.playback.PlayerState
 import com.ravk24.ravmusic.playback.QueuePlan
+import com.ravk24.ravmusic.playback.RepeatMode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,6 +40,20 @@ class PlayerViewModelTest {
         override fun togglePlayPause() { toggles++ }
         override fun stopAndClear() { stops++ }
         override fun refreshPosition() { refreshes++ }
+        var seeks = mutableListOf<Long>()
+        var nexts = 0
+        var previouses = 0
+        var lastShuffleSet: Boolean? = null
+        var lastRepeatSet: RepeatMode? = null
+        var jumps = mutableListOf<Int>()
+        var moves = mutableListOf<Pair<Int, Int>>()
+        override fun seekTo(positionMs: Long) { seeks += positionMs }
+        override fun next() { nexts++ }
+        override fun previous() { previouses++ }
+        override fun setShuffle(enabled: Boolean) { lastShuffleSet = enabled; flow.value = flow.value.copy(shuffleEnabled = enabled) }
+        override fun setRepeat(mode: RepeatMode) { lastRepeatSet = mode; flow.value = flow.value.copy(repeatMode = mode) }
+        override fun jumpToQueuePosition(position: Int) { jumps += position }
+        override fun moveInQueue(from: Int, to: Int) { moves += from to to }
         override fun release() {}
     }
 
@@ -97,6 +112,28 @@ class PlayerViewModelTest {
         bridge.lastPlan = null
         vm.shufflePlay(emptyList(), "x")
         assertNull(bridge.lastPlan)
+    }
+
+    @Test
+    fun `transport shuffle repeat and queue commands reach the bridge`() = runTest(dispatcher) {
+        val bridge = FakeBridge()
+        val vm = PlayerViewModel(bridge)
+        val a = vm.actions()
+        a.onSeek(12_345L)
+        a.onNext(); a.onPrevious()
+        a.onToggleShuffle(); a.onToggleShuffle()
+        a.onCycleRepeat(); a.onCycleRepeat(); a.onCycleRepeat()
+        a.onJumpTo(3)
+        a.onMoveInQueue(4, 1)
+        a.onRefreshPosition()
+        assertEquals(listOf(12_345L), bridge.seeks)
+        assertEquals(1, bridge.nexts)
+        assertEquals(1, bridge.previouses)
+        assertEquals(false, bridge.lastShuffleSet)
+        assertEquals(RepeatMode.OFF, bridge.lastRepeatSet)
+        assertEquals(listOf(3), bridge.jumps)
+        assertEquals(listOf(4 to 1), bridge.moves)
+        assertEquals(1, bridge.refreshes)
     }
 
     @Test

@@ -27,5 +27,9 @@ data class FolderDetail(val folderId: String, val name: String) : NavKey
 @Serializable
 data class PlaylistDetail(val playlistId: Long) : NavKey
 
+/** The full-screen player, pushed above any screen; hides the bottom bar and the mini player. */
+@Serializable
+data object NowPlaying : NavKey
+
 /** Keys whose screens show the bottom navigation bar. */
 val TabRoutes: Set<NavKey> = setOf(Playlists, Folders)

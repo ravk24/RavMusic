@@ -219,3 +219,37 @@ disagreed or were silent in six places. Resolved as follows.
 - **Decision:** `selectedIds` survives scrolling and rotation and dies with the Nav3 entry (spec F2: "survives
   scrolling but not navigation away"). Long-pressing one song is the "add a single song" path, so the spec's
   optional per-row overflow menu is not built.
+
+## 2026-08-29 — Now Playing design (`openspec/changes/now-playing/design.md`)
+
+### D-37 Now Playing is a Nav3 route
+- **Decision:** `NowPlaying` is a `NavKey` pushed above whatever is showing; the shell renders neither the
+  navigation bar nor the mini player while it is on top, and pops it itself when the queue disappears.
+- **Why:** Back-stack semantics for free; Phase 7 animates the same route.
+- **Rules out:** a modal sheet for the player.
+
+### D-38 Play order comes from a pure timeline walk on `PlayerState`
+- **Decision:** `playOrder(count, currentIndex, first, next)` walks Media3's `getFirstWindowIndex` /
+  `getNextWindowIndex(…, REPEAT_MODE_OFF, shuffle)`; `PlayerState.queue` is that order as `QueueEntry`s with
+  `queueIndex`, `remaining`, `hasNext`, `hasPrevious`. `RepeatMode` is an app enum mapped at the controller.
+
+### D-39 Reordering the queue under shuffle freezes the shown order and turns shuffle off
+- **Decision:** Shuffle off → `moveMediaItem`; shuffle on → `setMediaItems(shownOrder, current, position)`,
+  shuffle off, then the move. The `MediaController` has no API to set a custom shuffle order, so this is the
+  only way the drag can mean what the user sees. The brief re-prepare of the current song is accepted and
+  written into the `shuffle-repeat` spec.
+
+### D-40 Position ticker: 500 ms app-wide, 250 ms only while Now Playing is visible
+- **Decision:** The ViewModel's ticker serves the mini player; `NowPlayingScreen` runs its own
+  `LaunchedEffect` loop while playing and visible, calling `refreshPosition()`.
+
+### D-41 `PlayerActions` bundle and a generic `ReorderableList`
+- **Decision:** All player commands travel as one `PlayerActions` value built by `PlayerViewModel.actions()`
+  (tests use `PlayerActions.none().copy(…)`); the playlist drag reorder became `ReorderableList<T>` so the
+  queue sheet reuses the same gesture code.
+
+### D-42 Commands issued before the controller connects are queued, not last-one-wins
+- **Decision:** `PlayerConnection` keeps an ordered queue of pending commands and replays all of them on
+  connect (refines D-25, which kept only one).
+- **Why:** `play` immediately followed by `setRepeat` (a real sequence from Now Playing after a cold start)
+  dropped the `play`; the instrumented `PlaybackServiceTest` caught it.
