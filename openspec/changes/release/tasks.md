@@ -1,0 +1,10 @@
+## 1. Release build and signing
+
+- [ ] 1.1 In `app/build.gradle.kts` turn on `optimization { enable = true }` for `release` and add a `release` signing config read from `keystore.properties` / environment (`RAVMUSIC_STORE_FILE`, `RAVMUSIC_STORE_PASSWORD`, `RAVMUSIC_KEY_ALIAS`, `RAVMUSIC_KEY_PASSWORD`), applied only when the store file is configured; verify `.\gradlew.bat assembleRelease` is `BUILD SUCCESSFUL` both without the properties (unsigned APK) and with them (signed APK)
+- [ ] 1.2 Create the keystore once with `keytool` at `%USERPROFILE%\.android\ravmusic-release.jks` (alias `ravmusic`, RSA 2048, 10 000 days) and write the four signing entries to `keystore.properties` (git-ignored); verify `apksigner verify --print-certs app-release.apk` shows the RavMusic certificate and `git status` shows no keystore or properties file
+- [ ] 1.3 Sanity-check the artifact: `aapt2 dump permissions app-release.apk` lists only `READ_MEDIA_AUDIO`, `READ_EXTERNAL_STORAGE`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `WAKE_LOCK` (no `INTERNET`); record the APK size (expected well under 10 MB); `mapping.txt` is present next to the APK
+
+## 2. Smoke test and ship
+
+- [ ] 2.1 Install the release APK on the API 36 and API 26 emulators (uninstall the debug build first: different signature) and walk through: permission grant, Folders list, play a song, Home for 20 s with playback continuing, Now Playing with the sleep-timer chip, create a playlist and add songs, Settings → Dark, force-stop and relaunch (dark persists); then `adb install -r` the same APK over itself and verify the playlist and the Dark setting survive; verify `logcat` shows no crash (`AndroidRuntime` / `FATAL`) and no R8-related `ClassNotFound`/`NoSuchMethod` errors
+- [ ] 2.2 Update `Build-plan/README.md` (row 8 ✅, a "Release build / signing / sideload / update" section with the three-step update), `Build-plan/phases/08-ship.md` (status, result: size, permissions, keystore location + alias, smoke outcome) and `Build-plan/decisions.md` (D-53…); commit on `main` and push; verify `git status` is clean and `git log -1` shows the commit

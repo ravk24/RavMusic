@@ -30,3 +30,6 @@ local.properties
 # Heap dumps and release outputs
 *.hprof
 /app/release/
+
+# Release signing secrets (see Build-plan/phases/08-ship.md)
+/keystore.properties
