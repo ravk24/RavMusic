@@ -42,13 +42,6 @@ The system back action SHALL behave predictably: from any non-default tab it ret
 - **WHEN** the user is on the Playlists tab with no screen pushed above it and presses system back
 - **THEN** the app moves to the background (exits) rather than showing another screen
 
-### Requirement: Placeholder tab content
-Until the playlists capability exists, the Playlists tab SHALL show a clearly labelled placeholder (the destination title and a short "nothing here yet" message) rather than a blank screen. The Folders tab shows real content as specified by the `folder-browser` capability.
-
-#### Scenario: Placeholder visible
-- **WHEN** the user opens the Playlists tab with the audio permission granted
-- **THEN** the tab's title and a placeholder message are visible and the screen is not blank
-
 ### Requirement: Settings entry point
 The Playlists destination SHALL expose an overflow action that opens a Settings screen. Settings SHALL be a full-screen destination pushed above the tabs: it SHALL show a back affordance, SHALL NOT show the bottom navigation bar, and leaving it SHALL return the user to exactly where they were.
 
