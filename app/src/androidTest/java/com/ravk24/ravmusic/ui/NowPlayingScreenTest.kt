@@ -1,5 +1,9 @@
 package com.ravk24.ravmusic.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
@@ -11,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ravk24.ravmusic.playback.NowPlaying
 import com.ravk24.ravmusic.playback.PlayerActions
@@ -63,6 +68,32 @@ class NowPlayingScreenTest {
             RavMusicTheme { NowPlayingScreen(state = state, actions = actions, onCollapse = { c.collapse++ }) }
         }
         return c
+    }
+
+    @Test
+    fun shortScreen_keepsChipsBelowTheControls() {
+        // A phone-sized but short viewport: the art must give way, never the gap above the chips.
+        composeRule.setContent {
+            RavMusicTheme {
+                Box(Modifier.size(360.dp, 560.dp).testTag("np_short_host")) {
+                    NowPlayingScreen(state = playing, actions = PlayerActions.none(), onCollapse = {})
+                }
+            }
+        }
+        fun bounds(tag: String) = composeRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
+        val host = bounds("np_short_host")
+        val origin = bounds("np_origin")
+        val art = bounds("np_art")
+        val title = bounds("np_title")
+        val button = bounds("np_play_pause")
+        val chip = bounds("np_queue_chip")
+        val density = composeRule.density.density
+        assertTrue("art ${art.top} must start below the origin line ${origin.bottom}", art.top >= origin.bottom)
+        assertTrue("title ${title.top} must start below the art ${art.bottom}", title.top >= art.bottom)
+        assertTrue("art must be square: $art", kotlin.math.abs(art.width - art.height) < 1f)
+        assertTrue("chip top ${chip.top} must sit below the button ${button.bottom}", chip.top >= button.bottom + 8 * density)
+        assertTrue("chip bottom ${chip.bottom} must be inside the host ${host.bottom}", chip.bottom <= host.bottom)
+        composeRule.onNodeWithTag("np_queue_chip").assertIsDisplayed()
     }
 
     @Test

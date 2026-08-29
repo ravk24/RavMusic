@@ -19,6 +19,12 @@ are kept in `app/release/` (git-ignored).
 The phone was not attached to this machine, so the sideload itself follows the README recipe
 (copy the APK, allow "Install unknown apps" once, open it).
 
+**1.0.1 (versionCode 2), 2026-08-29:** Now Playing controls fix after the first phone screenshot — the art
+now shrinks first on short screens and a minimum 16 dp gap sits above the chips (the play/pause circle
+used to touch them), play/pause is the blurple accent with a white icon, the four side buttons share one
+28 dp icon size, and the chips are smaller (`labelMedium`, 14 dp icons) with theme-token colours when the
+sleep timer is active. Regression test `NowPlayingScreenTest.shortScreen_keepsChipsBelowTheControls`.
+
 ## Goal
 A signed release APK on the phone, and a repeatable way to update it.
 

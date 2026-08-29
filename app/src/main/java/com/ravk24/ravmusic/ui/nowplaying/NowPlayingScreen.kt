@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -54,10 +55,12 @@ import com.ravk24.ravmusic.ui.components.UNKNOWN_ARTIST_LABEL
 import com.ravk24.ravmusic.ui.components.artGradient
 import com.ravk24.ravmusic.ui.components.formatDuration
 import com.ravk24.ravmusic.ui.components.formatRemaining
-import com.ravk24.ravmusic.ui.theme.Lavender
-import com.ravk24.ravmusic.ui.theme.LavenderBorder
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 import kotlinx.coroutines.delay
+
+/** One size for shuffle / previous / next / repeat; the play/pause circle stays the big one. */
+private val SIDE_ICON_DP = 28.dp
+private val CHIP_ICON_DP = 14.dp
 
 /**
  * The full-screen player (design canvas artboards 1f / 1k). Everything shown comes from
@@ -141,15 +144,23 @@ fun NowPlayingScreen(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-
+        // The art takes whatever height is left and shrinks first on short screens, so the
+        // transport row and the chips below always keep their room.
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = 320.dp)
-                .aspectRatio(1f)
-                .background(artGradient(now?.songId ?: 0L), RoundedCornerShape(24.dp)),
-        )
+                .weight(3f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            // No fillMaxWidth here: a fixed min width would stop aspectRatio from fitting the height.
+            Box(
+                modifier = Modifier
+                    .widthIn(max = 320.dp)
+                    .aspectRatio(1f)
+                    .background(artGradient(now?.songId ?: 0L), RoundedCornerShape(24.dp))
+                    .testTag("np_art"),
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -219,27 +230,28 @@ fun NowPlayingScreen(
                     imageVector = AppIcons.Shuffle,
                     contentDescription = if (state.shuffleEnabled) "Shuffle on" else "Shuffle off",
                     tint = if (state.shuffleEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(SIDE_ICON_DP),
                 )
             }
             IconButton(onClick = actions.onPrevious, modifier = Modifier.testTag("np_prev")) {
-                Icon(AppIcons.SkipPrevious, contentDescription = "Previous", modifier = Modifier.size(32.dp))
+                Icon(AppIcons.SkipPrevious, contentDescription = "Previous", modifier = Modifier.size(SIDE_ICON_DP))
             }
             IconButton(
                 onClick = actions.onPlayPause,
                 modifier = Modifier
                     .size(72.dp)
-                    .background(MaterialTheme.colorScheme.onSurface, CircleShape)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
                     .testTag("np_play_pause"),
             ) {
                 Icon(
                     imageVector = if (state.isPlaying) AppIcons.Pause else AppIcons.PlayArrow,
                     contentDescription = if (state.isPlaying) "Pause" else "Play",
-                    tint = MaterialTheme.colorScheme.surface,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(34.dp),
                 )
             }
             IconButton(onClick = actions.onNext, modifier = Modifier.testTag("np_next")) {
-                Icon(AppIcons.SkipNext, contentDescription = "Next", modifier = Modifier.size(32.dp))
+                Icon(AppIcons.SkipNext, contentDescription = "Next", modifier = Modifier.size(SIDE_ICON_DP))
             }
             IconButton(onClick = actions.onCycleRepeat, modifier = Modifier.testTag("np_repeat")) {
                 Icon(
@@ -250,17 +262,22 @@ fun NowPlayingScreen(
                         RepeatMode.ONE -> "Repeat one"
                     },
                     tint = if (state.repeatMode == RepeatMode.OFF) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(SIDE_ICON_DP),
                 )
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 16.dp),
+        )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                .padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         ) {
             val sleepActive = timer !is SleepTimerState.Off
             AssistChip(
@@ -268,30 +285,35 @@ fun NowPlayingScreen(
                 enabled = state.hasQueue,
                 label = {
                     Text(
-                        when (timer) {
+                        text = when (timer) {
                             SleepTimerState.Off -> "Sleep timer"
                             is SleepTimerState.Countdown -> "Sleep · ${formatRemaining(remainingMs ?: 0L)} · tap to extend"
                             SleepTimerState.EndOfTrack -> "Sleep · end of track"
                         },
+                        style = MaterialTheme.typography.labelMedium,
                     )
                 },
-                leadingIcon = { Icon(AppIcons.Bedtime, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                leadingIcon = { Icon(AppIcons.Bedtime, contentDescription = null, modifier = Modifier.size(CHIP_ICON_DP)) },
                 colors = if (sleepActive) {
                     AssistChipDefaults.assistChipColors(
-                        containerColor = Lavender,
-                        labelColor = MaterialTheme.colorScheme.primary,
-                        leadingIconContentColor = MaterialTheme.colorScheme.primary,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        leadingIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 } else {
                     AssistChipDefaults.assistChipColors()
                 },
-                border = if (sleepActive) BorderStroke(1.dp, LavenderBorder) else AssistChipDefaults.assistChipBorder(enabled = state.hasQueue),
+                border = if (sleepActive) {
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                } else {
+                    AssistChipDefaults.assistChipBorder(enabled = state.hasQueue)
+                },
                 modifier = Modifier.testTag("np_sleep_chip"),
             )
             AssistChip(
                 onClick = { queueOpen = true },
-                label = { Text("Queue · ${state.remaining} left") },
-                leadingIcon = { Icon(AppIcons.QueueMusic, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                label = { Text("Queue · ${state.remaining} left", style = MaterialTheme.typography.labelMedium) },
+                leadingIcon = { Icon(AppIcons.QueueMusic, contentDescription = null, modifier = Modifier.size(CHIP_ICON_DP)) },
                 modifier = Modifier.testTag("np_queue_chip"),
             )
         }
