@@ -1,7 +1,7 @@
 # now-playing Specification
 
 ## Purpose
-The full-screen player: what the user sees and can do with the song that is playing — art, titles, where it came from, seeking, skipping, play/pause — and how the screen opens from and returns to the rest of the app.
+The full-screen player: what the user sees and can do with the song that is playing — title, artist, where it came from, seeking, skipping, play/pause — and how the screen opens from and returns to the rest of the app.
 
 ## Requirements
 
@@ -25,7 +25,7 @@ Tapping the mini player SHALL open the Now Playing screen as a full-screen desti
 - **THEN** the previous screen is still composed underneath the incoming player until the animation finishes
 
 ### Requirement: Content
-The screen SHALL show the song's gradient art, its title, its artist or "Unknown artist", and the label "Playing from" with the queue's origin (the folder or playlist name). The content SHALL follow the current song as the queue advances or the user skips.
+The screen SHALL show the song's title, its artist or "Unknown artist", and the label "Playing from" with the queue's origin (the folder or playlist name). It SHALL NOT show album art or any placeholder for it. The content SHALL follow the current song as the queue advances or the user skips.
 
 #### Scenario: Song details
 - **WHEN** "Copper Sky" by "Nocturne Ave" from the playlist "Late night" is playing
@@ -33,7 +33,7 @@ The screen SHALL show the song's gradient art, its title, its artist or "Unknown
 
 #### Scenario: Follows the queue
 - **WHEN** the song ends and the next one starts while the screen is open
-- **THEN** the art, title and artist change to the new song and the elapsed time restarts
+- **THEN** the title and artist change to the new song and the elapsed time restarts
 
 ### Requirement: Seek bar
 The screen SHALL show a seek bar with the elapsed time on the left and the total duration on the right, both as minutes:seconds (hours:minutes:seconds from an hour). While the user drags the bar the elapsed label SHALL show the scrub position; releasing SHALL seek the session to that position. While the screen is visible and a song is playing, the bar and elapsed label SHALL refresh at least four times a second.

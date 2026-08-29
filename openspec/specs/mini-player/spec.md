@@ -21,7 +21,7 @@ While a queue is loaded the mini player SHALL be visible at the bottom of every 
 - **THEN** no mini player is shown and the content extends to the bottom navigation bar
 
 ### Requirement: Content and controls
-The mini player SHALL show an art tile (a deterministic gradient for the song, per the gradient-art decision), the song title, the artist or "Unknown artist", and a play/pause button that toggles playback. A thin progress line along its top edge SHALL show the position within the current song. Its content SHALL follow the current song when the queue advances.
+The mini player SHALL show the song title, the artist or "Unknown artist", and a play/pause button that toggles playback; it SHALL NOT show album art or a placeholder tile. A thin progress line along its top edge SHALL show the position within the current song. Its content SHALL follow the current song when the queue advances.
 
 #### Scenario: Toggle from the mini player
 - **WHEN** a song is playing and the user taps the mini player's pause button
@@ -29,7 +29,7 @@ The mini player SHALL show an art tile (a deterministic gradient for the song, p
 
 #### Scenario: Queue advances
 - **WHEN** the current song ends and the next one starts
-- **THEN** the mini player shows the next song's title, artist and art, and the progress line restarts
+- **THEN** the mini player shows the next song's title and artist, and the progress line restarts
 
 ### Requirement: Swipe to stop
 Swiping the mini player horizontally away SHALL stop playback, clear the queue and hide the mini player.
