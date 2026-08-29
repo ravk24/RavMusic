@@ -1,7 +1,7 @@
 # settings Specification
 
 ## Purpose
-TBD - created by archiving change polish. Update Purpose after archive.
+The app's only preferences, kept deliberately tiny (spec F8): a theme override so dark mode can be forced either way, the short-audio threshold that decides what counts as a song, and a way to rescan the library and see when it was last read. Everything here is persisted on the device and applied immediately.
 
 ## Requirements
 
