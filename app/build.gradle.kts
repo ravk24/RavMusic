@@ -1,17 +1,19 @@
 plugins {
     alias(libs.plugins.android.application)
-    // Kotlin itself is provided by AGP 9's built-in Kotlin support; only the Compose compiler plugin is needed.
+    // Kotlin itself is provided by AGP 9's built-in Kotlin support; only compiler plugins are applied here.
     alias(libs.plugins.compose.compiler)
+    // Required by Navigation 3: NavKey routes must be @Serializable for rememberNavBackStack.
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
-    namespace = "com.example.ravmusic"
+    namespace = "com.ravk24.ravmusic"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.example.ravmusic"
+        applicationId = "com.ravk24.ravmusic"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
@@ -39,6 +41,7 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -46,6 +49,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    implementation(libs.kotlinx.serialization.core)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
