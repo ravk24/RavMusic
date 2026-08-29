@@ -139,3 +139,43 @@ disagreed or were silent in six places. Resolved as follows.
 ### D-23 `kotlinx-coroutines-test` pinned to 1.9.0
 - **Decision:** Matches the coroutines version Compose 1.12 / lifecycle 2.11 resolve (checked with
   `:app:dependencies`). Test-only dependency.
+
+## 2026-08-29 — Playback design (`openspec/changes/playback-core/design.md`)
+
+### D-24 Media3 1.11.0 `MediaSessionService` + ExoPlayer own playback
+- **Decision:** `playback/PlaybackService` creates one ExoPlayer (music audio attributes, audio focus,
+  handle-becoming-noisy, local wake mode) inside a `MediaSession` whose session activity opens
+  `MainActivity`. The default notification provider supplies notification, lock-screen and headset handling.
+- **Why:** Spec F4 asks for exactly this; the legacy `MediaSessionCompat` stack is what Media3 replaces.
+- **Rules out:** `MediaPlayer` in the Activity, hand-rolled notifications.
+
+### D-25 `PlayerConnection` bridge behind an Activity-scoped `PlayerViewModel`; `PlayerState` is a value
+- **Decision:** One `MediaController` per process (`AppContainer.playerConnection`), mirrored into
+  `StateFlow<PlayerState>` (`NowPlaying?`, `isPlaying`, position, duration); `PlayerViewModel` connects in
+  `init`, releases in `onCleared`, and runs a 500 ms position ticker only while playing. Title, artist and
+  origin travel in each `MediaItem`'s metadata so the UI can rebuild `NowPlaying` after reconnecting.
+- **Why:** Same seam as permission and library state; survives tab switches and rotation; `nowPlaying == null`
+  is the single rule for hiding the mini player.
+
+### D-26 Missing files are skipped at playback time, not pre-filtered
+- **Decision:** `onPlayerError` on the service side seeks to the next item (or stops and clears at the end of
+  the queue). No file-descriptor check when the queue is built.
+- **Why:** Opening every file of a large folder on tap is slow and still races with deletion; ExoPlayer already
+  reports the failure. Spec F1's "skip on playback" is exactly this. The playlists change adds the greyed rows.
+
+### D-27 Mini player docks in the Scaffold `bottomBar` as a column above the navigation bar
+- **Decision:** `AppNavigation`'s `bottomBar` is `Column { MiniPlayer?; NavigationBar? }`; on routes without
+  the bar the column takes the navigation-bar inset itself. Present on tabs, `FolderDetail` and `Settings`.
+- **Why:** Content padding grows automatically, no per-screen bottom padding, and Now Playing can later expand
+  from the same slot.
+- **Rules out:** an overlay `Box` above the content.
+
+### D-28 Gradient art helper and current-row highlight
+- **Decision:** `ui/components/GradientArt.kt` maps a seed (song or playlist id) to one of the six mockup
+  gradient pairs (`artGradientIndex`, pure) — the D-02 "gradient as album art" in code. `SongRow` gains
+  `isCurrent` (title in the primary colour, `selected` semantics).
+
+### D-29 Manifest: `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `WAKE_LOCK`; no `POST_NOTIFICATIONS`
+- **Decision:** All three are install-time permissions; the service declares
+  `foregroundServiceType="mediaPlayback"`. Media-session notifications are exempt from the notification
+  runtime permission, so `audio-permission`'s "exactly one runtime permission" still holds.

@@ -41,6 +41,10 @@ object AppIcons {
         )
     }
 
+    val PlayArrow: ImageVector by lazy { materialIcon("PlayArrow", "M8 5v14l11-7z") }
+
+    val Pause: ImageVector by lazy { materialIcon("Pause", "M6 19h4V5H6v14zm8-14v14h4V5h-4z") }
+
     /** Row chevron; mirrored automatically in RTL layouts. */
     val ChevronRight: ImageVector by lazy {
         materialIcon(

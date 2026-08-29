@@ -1,8 +1,12 @@
 package com.ravk24.ravmusic.ui.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,29 +25,32 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.ravk24.ravmusic.data.model.Song
 import com.ravk24.ravmusic.data.repo.LibraryState
 import com.ravk24.ravmusic.permission.PermissionState
+import com.ravk24.ravmusic.playback.PlayerState
 import com.ravk24.ravmusic.ui.components.AppIcons
 import com.ravk24.ravmusic.ui.folders.FolderDetailScreen
 import com.ravk24.ravmusic.ui.folders.FoldersScreen
 import com.ravk24.ravmusic.ui.permission.AudioPermissionGate
+import com.ravk24.ravmusic.ui.player.MiniPlayer
 import com.ravk24.ravmusic.ui.playlists.PlaylistsScreen
 import com.ravk24.ravmusic.ui.settings.SettingsScreen
 
 /**
- * The application shell: a Navigation 3 back stack, the two-tab bottom bar, and the audio
- * permission gate around every library-backed screen.
+ * The application shell: a Navigation 3 back stack, the two-tab bottom bar, the docked mini
+ * player, and the audio permission gate around every library-backed screen.
  *
  * Back-stack model: the stack is always `[Playlists]` or `[Playlists, Folders]`, optionally with
  * one detail screen on top — `Settings` above either tab, `FolderDetail` above Folders. That gives
  * the spec'd back behaviour for free: back from a detail returns to its tab, back from Folders
  * lands on Playlists, back from Playlists (stack size 1) leaves the app. Only tab roots show the
- * bottom bar.
+ * bottom bar; the mini player sits above it on every route while a queue is loaded.
  *
  * Per-tab scroll state is hoisted here rather than left to the Nav3 saveable decorator,
  * because that decorator discards an entry's state when the entry is popped — and switching
- * tabs pops. Hoisting keeps each tab exactly as it was left, across tab switches and rotation.
- * Library state is likewise passed in as a value: it lives in an Activity-scoped ViewModel.
+ * tabs pops. Library and player state are likewise passed in as values: they live in
+ * Activity-scoped ViewModels.
  */
 @Composable
 fun AppNavigation(
@@ -52,6 +59,10 @@ fun AppNavigation(
     onOpenAppSettings: () -> Unit,
     libraryState: LibraryState,
     onRefreshLibrary: () -> Unit,
+    playerState: PlayerState,
+    onPlayPause: () -> Unit,
+    onDismissPlayer: () -> Unit,
+    onPlaySong: (songs: List<Song>, index: Int, origin: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val backStack = rememberNavBackStack(Playlists)
@@ -72,34 +83,48 @@ fun AppNavigation(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (showBottomBar) {
-                NavigationBar(
-                    modifier = Modifier.testTag("bottom_bar"),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ) {
-                    val itemColors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            // Mini player above the navigation bar on tabs; alone at the bottom on detail screens,
+            // where it takes over the navigation-bar inset the NavigationBar would otherwise consume.
+            Column(
+                modifier = if (showBottomBar) Modifier else Modifier.windowInsetsPadding(WindowInsets.navigationBars),
+            ) {
+                if (playerState.hasQueue) {
+                    MiniPlayer(
+                        state = playerState,
+                        onPlayPause = onPlayPause,
+                        onExpand = {},
+                        onDismiss = onDismissPlayer,
                     )
-                    NavigationBarItem(
-                        selected = current == Playlists,
-                        onClick = { selectTab(Playlists) },
-                        icon = { Icon(AppIcons.QueueMusic, contentDescription = null) },
-                        label = { Text("Playlists") },
-                        colors = itemColors,
-                        modifier = Modifier.testTag("tab_playlists"),
-                    )
-                    NavigationBarItem(
-                        selected = current == Folders,
-                        onClick = { selectTab(Folders) },
-                        icon = { Icon(AppIcons.Folder, contentDescription = null) },
-                        label = { Text("Folders") },
-                        colors = itemColors,
-                        modifier = Modifier.testTag("tab_folders"),
-                    )
+                }
+                if (showBottomBar) {
+                    NavigationBar(
+                        modifier = Modifier.testTag("bottom_bar"),
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ) {
+                        val itemColors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        NavigationBarItem(
+                            selected = current == Playlists,
+                            onClick = { selectTab(Playlists) },
+                            icon = { Icon(AppIcons.QueueMusic, contentDescription = null) },
+                            label = { Text("Playlists") },
+                            colors = itemColors,
+                            modifier = Modifier.testTag("tab_playlists"),
+                        )
+                        NavigationBarItem(
+                            selected = current == Folders,
+                            onClick = { selectTab(Folders) },
+                            icon = { Icon(AppIcons.Folder, contentDescription = null) },
+                            label = { Text("Folders") },
+                            colors = itemColors,
+                            modifier = Modifier.testTag("tab_folders"),
+                        )
+                    }
                 }
             }
         },
@@ -157,6 +182,8 @@ fun AppNavigation(
                                 folderName = key.name,
                                 songs = songs,
                                 onBack = { backStack.removeLastOrNull() },
+                                onSongClick = { song -> onPlaySong(songs, songs.indexOf(song), key.name) },
+                                nowPlayingId = playerState.nowPlaying?.songId,
                             )
                         }
                     }

@@ -30,7 +30,7 @@ import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 
 /**
  * A folder's songs (design canvas artboard 1d, browse mode). Pushed above the tabs, so the
- * shell hides the bottom bar. Song taps are inert until the playback change adds a handler.
+ * shell hides the bottom bar. Tapping a song starts playback of the folder ([onSongClick]).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +40,7 @@ fun FolderDetailScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onSongClick: (Song) -> Unit = {},
+    nowPlayingId: Long? = null,
 ) {
     Scaffold(
         modifier = modifier
@@ -106,6 +107,7 @@ fun FolderDetailScreen(
                         song = song,
                         onClick = { onSongClick(song) },
                         modifier = Modifier.testTag("song_row_${song.id}"),
+                        isCurrent = song.id == nowPlayingId,
                     )
                 }
             }

@@ -19,7 +19,7 @@ The authoritative *machine-readable* plan for each phase lives in `openspec/chan
 | 0 | Build configuration — AGP 9 built-in Kotlin, Compose, minSdk 26 | *(pre-OpenSpec, commit `19196ac`)* | ✅ Done |
 | 1 | [Skeleton](phases/01-skeleton.md) — theme, bottom nav, permission flow, app icon | `app-skeleton` | ✅ Done |
 | 2 | [Library](phases/02-library.md) — MediaStore scanner, folder browser | `library-browser` | ✅ Done |
-| 3 | [Playback core](phases/03-playback-core.md) — service, tap-to-play, mini player | `playback-core` | ⏳ Planned |
+| 3 | [Playback core](phases/03-playback-core.md) — service, tap-to-play, mini player | `playback-core` | ✅ Done |
 | 4 | [Playlists](phases/04-playlists.md) — Room, CRUD, multi-select | `playlists` | ⏳ Planned |
 | 5 | [Now Playing](phases/05-now-playing.md) — full screen, seek, shuffle/repeat, queue | `now-playing` | ⏳ Planned |
 | 6 | [Sleep timer](phases/06-sleep-timer.md) | `sleep-timer` | ⏳ Planned |

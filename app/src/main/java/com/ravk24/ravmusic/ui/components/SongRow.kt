@@ -11,6 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -20,17 +22,22 @@ import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 
 const val UNKNOWN_ARTIST_LABEL = "Unknown artist"
 
-/** One song line (design canvas artboard 1d): title, artist or "Unknown artist", duration. */
+/**
+ * One song line (design canvas artboard 1d): title, artist or "Unknown artist", duration.
+ * [isCurrent] highlights the song the player is on (exposed as `selected` for tests).
+ */
 @Composable
 fun SongRow(
     song: Song,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isCurrent: Boolean = false,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .semantics { selected = isCurrent }
             .padding(horizontal = 16.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -40,7 +47,7 @@ fun SongRow(
                 text = song.title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

@@ -12,6 +12,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ravk24.ravmusic.data.repo.LibraryState
 import com.ravk24.ravmusic.permission.PermissionState
+import com.ravk24.ravmusic.playback.PlayerState
 import com.ravk24.ravmusic.ui.navigation.AppNavigation
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 import org.junit.Assert.assertTrue
@@ -40,6 +41,10 @@ class AppNavigationTest {
                     onOpenAppSettings = {},
                     libraryState = LibraryState.Idle,
                     onRefreshLibrary = {},
+                    playerState = PlayerState(),
+                    onPlayPause = {},
+                    onDismissPlayer = {},
+                    onPlaySong = { _, _, _ -> },
                 )
             }
         }

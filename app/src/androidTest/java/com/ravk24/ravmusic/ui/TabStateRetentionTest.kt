@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ravk24.ravmusic.permission.PermissionState
+import com.ravk24.ravmusic.playback.PlayerState
 import com.ravk24.ravmusic.ui.navigation.AppNavigation
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 import org.junit.Assert.assertEquals
@@ -54,6 +55,10 @@ class TabStateRetentionTest {
                         onOpenAppSettings = {},
                         libraryState = library,
                         onRefreshLibrary = {},
+                        playerState = PlayerState(),
+                        onPlayPause = {},
+                        onDismissPlayer = {},
+                        onPlaySong = { _, _, _ -> },
                     )
                 }
             }
@@ -100,6 +105,10 @@ class TabStateRetentionTest {
                     onOpenAppSettings = {},
                     libraryState = library,
                     onRefreshLibrary = {},
+                    playerState = PlayerState(),
+                    onPlayPause = {},
+                    onDismissPlayer = {},
+                    onPlaySong = { _, _, _ -> },
                 )
             }
         }

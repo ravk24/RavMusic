@@ -43,8 +43,8 @@ class MainActivity : ComponentActivity() {
 
 /**
  * Wires the Android-only side effects (permission dialog, system settings intent, resume
- * re-check) to the pure [AppViewModel] state, ties the library to the permission, and hands
- * both to [AppNavigation].
+ * re-check) to the pure [AppViewModel] state, ties the library to the permission, connects the
+ * player, and hands everything to [AppNavigation].
  */
 @Composable
 private fun AppRoot(viewModel: AppViewModel = viewModel()) {
@@ -60,6 +60,13 @@ private fun AppRoot(viewModel: AppViewModel = viewModel()) {
         },
     )
     val libraryState by libraryViewModel.state.collectAsStateWithLifecycle()
+
+    val playerViewModel: PlayerViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer { PlayerViewModel(container.playerConnection) }
+        },
+    )
+    val playerState by playerViewModel.state.collectAsStateWithLifecycle()
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         viewModel.refresh(checker)
@@ -92,5 +99,9 @@ private fun AppRoot(viewModel: AppViewModel = viewModel()) {
         },
         libraryState = libraryState,
         onRefreshLibrary = libraryViewModel::refresh,
+        playerState = playerState,
+        onPlayPause = playerViewModel::togglePlayPause,
+        onDismissPlayer = playerViewModel::stopAndClear,
+        onPlaySong = playerViewModel::playSongs,
     )
 }

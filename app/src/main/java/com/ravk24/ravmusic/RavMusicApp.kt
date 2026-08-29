@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import com.ravk24.ravmusic.data.mediastore.MediaStoreScanner
 import com.ravk24.ravmusic.data.repo.LibraryRepository
+import com.ravk24.ravmusic.playback.PlayerConnection
 
 /**
  * Application entry point. Owns the [AppContainer] so every phase (library, playback,
@@ -29,4 +30,7 @@ class AppContainer(context: Context) {
     val libraryRepository: LibraryRepository by lazy {
         LibraryRepository(MediaStoreScanner(appContext.contentResolver))
     }
+
+    /** The UI's client of the playback service. One per process; connected by the player ViewModel. */
+    val playerConnection: PlayerConnection by lazy { PlayerConnection(appContext) }
 }
