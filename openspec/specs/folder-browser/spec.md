@@ -65,7 +65,7 @@ Pulling down on the folder list SHALL re-query the media index. While the refres
 - **THEN** the folders already shown remain visible until the new result replaces them
 
 ### Requirement: Folder detail
-Tapping a folder SHALL open a detail screen pushed above the tabs, titled with the folder name and showing its song count, listing that folder's songs sorted by title (case-insensitive). Each row SHALL show the title, the artist or "Unknown artist" when the file has no artist tag, and the duration formatted as minutes:seconds (hours:minutes:seconds when an hour or longer). The screen SHALL provide a back affordance; back (affordance or system back) SHALL return to the Folders tab with the tab selected. Tapping a song SHALL have no effect in this change.
+Tapping a folder SHALL open a detail screen pushed above the tabs, titled with the folder name and showing its song count, listing that folder's songs sorted by title (case-insensitive). Each row SHALL show the title, the artist or "Unknown artist" when the file has no artist tag, and the duration formatted as minutes:seconds (hours:minutes:seconds when an hour or longer). The screen SHALL provide a back affordance; back (affordance or system back) SHALL return to the Folders tab with the tab selected. Tapping a song SHALL start playback of the folder from that song, as specified by the `playback` capability, and the row of the song currently playing SHALL be visually highlighted.
 
 #### Scenario: Open a folder
 - **WHEN** the user taps the "Rock" row containing "Beta Song" (41 s, no artist tag)
@@ -80,8 +80,12 @@ Tapping a folder SHALL open a detail screen pushed above the tabs, titled with t
 - **THEN** its row shows "Nocturne Ave" and "1:02:05"
 
 #### Scenario: Song tap is inert
-- **WHEN** the user taps a song row in this change
-- **THEN** nothing happens (no navigation, no playback)
+- **WHEN** the user taps a song row
+- **THEN** the tap is no longer inert: playback starts as described in "Song tap plays the folder"
+
+#### Scenario: Song tap plays the folder
+- **WHEN** the user taps "Glass Rain" in the "Music" folder
+- **THEN** "Glass Rain" starts playing with the rest of the folder queued after it, the mini player appears, and the "Glass Rain" row is highlighted as the current song
 
 ### Requirement: Empty library state
 When the permission is granted but the query returns no songs, the Folders tab SHALL show an empty state that says no music was found, suggests copying music into a folder such as /Music, notes that short audio is hidden, and offers a "Rescan" action that re-queries the library.
