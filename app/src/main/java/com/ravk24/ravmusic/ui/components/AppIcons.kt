@@ -41,6 +41,15 @@ object AppIcons {
         )
     }
 
+    /** Row chevron; mirrored automatically in RTL layouts. */
+    val ChevronRight: ImageVector by lazy {
+        materialIcon(
+            "ChevronRight",
+            "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z",
+            autoMirror = true,
+        )
+    }
+
     val Folder: ImageVector by lazy {
         ImageVector.Builder(
             name = "Folder",

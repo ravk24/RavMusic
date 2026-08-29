@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.dp
 
 /** Build phases still to come, shown by the placeholder tabs. */
 val UpcomingPhases = listOf(
-    "Library — browse folders from your phone",
     "Playback — background play with a mini player",
     "Playlists — multi-select songs, save lists",
     "Now Playing — seek, shuffle, repeat, queue",

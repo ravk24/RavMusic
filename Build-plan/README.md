@@ -18,7 +18,7 @@ The authoritative *machine-readable* plan for each phase lives in `openspec/chan
 |---|---|---|---|
 | 0 | Build configuration — AGP 9 built-in Kotlin, Compose, minSdk 26 | *(pre-OpenSpec, commit `19196ac`)* | ✅ Done |
 | 1 | [Skeleton](phases/01-skeleton.md) — theme, bottom nav, permission flow, app icon | `app-skeleton` | ✅ Done |
-| 2 | [Library](phases/02-library.md) — MediaStore scanner, folder browser | `library-browser` | ⏳ Planned |
+| 2 | [Library](phases/02-library.md) — MediaStore scanner, folder browser | `library-browser` | ✅ Done |
 | 3 | [Playback core](phases/03-playback-core.md) — service, tap-to-play, mini player | `playback-core` | ⏳ Planned |
 | 4 | [Playlists](phases/04-playlists.md) — Room, CRUD, multi-select | `playlists` | ⏳ Planned |
 | 5 | [Now Playing](phases/05-now-playing.md) — full screen, seek, shuffle/repeat, queue | `now-playing` | ⏳ Planned |
@@ -62,10 +62,20 @@ $sdk = "$env:LOCALAPPDATA\Android\Sdk"
 Useful during testing:
 
 ```powershell
-adb shell pm grant  com.ravk24.ravmusic android.permission.READ_MEDIA_AUDIO
+adb shell pm grant  com.ravk24.ravmusic android.permission.READ_MEDIA_AUDIO   # READ_EXTERNAL_STORAGE on API <= 32
 adb shell pm revoke com.ravk24.ravmusic android.permission.READ_MEDIA_AUDIO
 adb shell cmd uimode night yes    # system dark mode on / no = off
+
+# Test audio: push files, then make MediaStore index them. No ffmpeg needed — a Python `wave` script
+# writing a 440 Hz WAV is enough; MediaStore reads the duration from the header.
+adb push "alpha song.wav" /sdcard/Music/
+adb shell content call --uri content://media/ --method scan_volume --arg external_primary            # API 29+
+adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Music/alpha%20song.wav   # API 26–28, per file
+adb shell content query --uri content://media/external/audio/media --projection _id:title:bucket_display_name:duration:is_music   # _data instead of bucket_display_name on API 26–28
 ```
+
+Run `adb` commands that mention device paths (`/sdcard/...`) from PowerShell: Git Bash rewrites them into
+Windows paths.
 
 ## Hard constraints (never change these)
 

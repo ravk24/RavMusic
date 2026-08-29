@@ -15,5 +15,13 @@ data object Folders : NavKey
 @Serializable
 data object Settings : NavKey
 
+/**
+ * A folder's song list, pushed above the Folders tab; hides the bottom navigation bar.
+ * Carries the id and display name so the screen can render its header before (or without)
+ * the library snapshot; songs are looked up from the snapshot by [folderId].
+ */
+@Serializable
+data class FolderDetail(val folderId: String, val name: String) : NavKey
+
 /** Keys whose screens show the bottom navigation bar. */
 val TabRoutes: Set<NavKey> = setOf(Playlists, Folders)

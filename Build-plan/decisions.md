@@ -87,3 +87,55 @@ disagreed or were silent in six places. Resolved as follows.
 - **Why:** Pasting the full image as the foreground would let launcher masks clip the gold ring; the
   layered form survives every mask shape and themed-icon tinting. Pulled forward from Phase 7 at the
   user's request (2026-08-29).
+
+## 2026-08-29 — Library design (`openspec/changes/library-browser/design.md`)
+
+### D-15 Library snapshot lives in the app-scoped repository; `LibraryViewModel` is Activity-scoped
+- **Decision:** `LibraryRepository` (one instance in `AppContainer`) owns `StateFlow<LibraryState>`
+  (`Idle` / `Loading` / `Loaded(snapshot, refreshing)`); `LibraryViewModel` is created in `AppRoot` and only
+  forwards `ensureLoaded` / `refresh` / `clear`; screens receive `LibraryState` as a value.
+- **Why:** The Folders Nav3 entry is popped on every tab switch, so an entry-scoped ViewModel would re-query
+  each time. Same seam as `permissionState`.
+- **Rules out:** per-screen ViewModels holding library data.
+
+### D-16 Folder identity = MediaStore bucket on API 29+, the same formula on the path below
+- **Decision:** On 29+ read `BUCKET_ID` / `BUCKET_DISPLAY_NAME`; on 26–28 read `DATA` and compute
+  `id = parentPath.lowercase().hashCode()`, `name = parent directory name` (`folderFromPath`).
+- **Why:** Audio rows have no bucket columns before 29 (verified in the SDK `api-versions.xml` and on the
+  API 26 emulator). The formula reproduces MediaStore's real `bucket_id` values exactly (checked against
+  `content query` on API 36: 82896267 for `/storage/emulated/0/Music`), so ids are deterministic and safe
+  inside the saved `FolderDetail` navigation key.
+
+### D-17 `Song.uri` is a `String`
+- **Decision:** The content URI (`ContentUris.withAppendedId(EXTERNAL_CONTENT_URI, id)`) is stored as text.
+- **Why:** `android.net.Uri` is a stub on the JVM and would poison every pure test; Room stores the same
+  string in the playlists phase; playback parses it at the player boundary.
+
+### D-18 Short-audio filter lives in the SQL selection
+- **Decision:** `IS_MUSIC != 0 AND DURATION >= ?` with `MIN_SONG_DURATION_MS = 30_000L` in
+  `data/mediastore/MediaScanner.kt`; footer and empty-state copy derive from the constant.
+- **Why:** Cheaper than filtering in memory and the query result equals what is shown. The Settings phase
+  turns the constant into a scanner parameter.
+
+### D-19 No error state in v1
+- **Decision:** A null cursor or `SecurityException` is logged and yields an empty list (the empty-library
+  state). `LibraryState` has no `Error`.
+- **Why:** The only realistic failure is a missing permission, which the gate handles before a query runs.
+
+### D-20 Pull-to-refresh via Material 3 `PullToRefreshBox`; Rescan button on the empty state
+- **Decision:** `PullToRefreshBox` (stable in Material 3 1.4.0, no opt-in) wraps the folder list. The empty
+  state cannot be pulled (nothing scrolls), so it has an explicit "Rescan" button. No `ContentObserver` and
+  no re-query on resume.
+
+### D-21 Shared `EmptyState` composable
+- **Decision:** `ui/components/EmptyState.kt` holds the artboard-1h layout; `NoMusicFoundScreen` and the
+  empty library both use it. `NoMusicFoundScreen` kept its public API, strings and test tags.
+
+### D-22 Detail routes are gated and hide the bottom bar
+- **Decision:** `FolderDetail(folderId, name)` is a `@Serializable` `NavKey` pushed onto `[Playlists, Folders]`,
+  not in `TabRoutes` (so the bar hides, like `Settings`), and wrapped in `AudioPermissionGate` so a revoke
+  detected on resume replaces the song list. Songs are looked up from the snapshot by id.
+
+### D-23 `kotlinx-coroutines-test` pinned to 1.9.0
+- **Decision:** Matches the coroutines version Compose 1.12 / lifecycle 2.11 resolve (checked with
+  `:app:dependencies`). Test-only dependency.

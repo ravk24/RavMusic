@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.ravk24.ravmusic.data.repo.LibraryState
 import com.ravk24.ravmusic.permission.PermissionState
 import com.ravk24.ravmusic.ui.navigation.AppNavigation
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
@@ -37,6 +38,8 @@ class AppNavigationTest {
                     permissionState = PermissionState.Granted,
                     onRequestPermission = {},
                     onOpenAppSettings = {},
+                    libraryState = LibraryState.Idle,
+                    onRefreshLibrary = {},
                 )
             }
         }

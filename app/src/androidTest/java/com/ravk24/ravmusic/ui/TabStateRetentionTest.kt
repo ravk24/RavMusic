@@ -16,7 +16,6 @@ import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ravk24.ravmusic.permission.PermissionState
-import com.ravk24.ravmusic.ui.components.UpcomingPhases
 import com.ravk24.ravmusic.ui.navigation.AppNavigation
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 import org.junit.Assert.assertEquals
@@ -35,10 +34,14 @@ class TabStateRetentionTest {
     @get:Rule
     val timeout: Timeout = Timeout.seconds(90)
 
-    private val lastPhase = UpcomingPhases.last()
+    private val folderCount = 30
 
-    /** Index of the last list item: "message" + "heading" precede the phases. */
-    private val lastIndex = UpcomingPhases.size + 1
+    private val library = FakeLibrary.loaded(FakeLibrary.manyFolders(folderCount))
+
+    /** Index of the last folder row (the footer follows it); scrolling here keeps that row visible. */
+    private val lastIndex = folderCount - 1
+
+    private val lastFolderName = "Folder %02d".format(folderCount)
 
     /** The shell is rendered in a short box so the placeholder list actually scrolls. */
     private fun setShortShell() {
@@ -49,6 +52,8 @@ class TabStateRetentionTest {
                         permissionState = PermissionState.Granted,
                         onRequestPermission = {},
                         onOpenAppSettings = {},
+                        libraryState = library,
+                        onRefreshLibrary = {},
                     )
                 }
             }
@@ -73,7 +78,7 @@ class TabStateRetentionTest {
         composeRule.waitForIdle()
         val scrolled = foldersScrollOffset()
         assertTrue("list should have scrolled, offset=$scrolled", scrolled > 0f)
-        composeRule.onNodeWithText(lastPhase).assertExists()
+        composeRule.onNodeWithText(lastFolderName).assertExists()
 
         composeRule.onNodeWithTag("tab_playlists").performClick()
         composeRule.onNodeWithTag("screen_playlists").assertIsDisplayed()
@@ -81,7 +86,7 @@ class TabStateRetentionTest {
 
         composeRule.onNodeWithTag("screen_folders").assertIsDisplayed()
         assertEquals("scroll offset must survive the tab round-trip", scrolled, foldersScrollOffset(), 0.5f)
-        composeRule.onNodeWithText(lastPhase).assertExists()
+        composeRule.onNodeWithText(lastFolderName).assertExists()
     }
 
     @Test
@@ -93,6 +98,8 @@ class TabStateRetentionTest {
                     permissionState = PermissionState.Granted,
                     onRequestPermission = {},
                     onOpenAppSettings = {},
+                    libraryState = library,
+                    onRefreshLibrary = {},
                 )
             }
         }
