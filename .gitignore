@@ -27,9 +27,8 @@ local.properties
 # Per-user Claude Code settings
 .claude/settings.local.json
 
-# Heap dumps and release outputs
+# Heap dumps
 *.hprof
-/app/release/
 
 # Release signing secrets (see Build-plan/phases/08-ship.md)
 /keystore.properties
