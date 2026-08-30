@@ -33,7 +33,12 @@ class PlaylistsScreenTest {
         Playlist(2, "Focus", 1, 4 * 60_000L, 0),
     )
 
-    private fun set(list: List<Playlist>, onOpen: (Playlist) -> Unit = {}, onCreate: (String) -> Unit = {}) {
+    private fun set(
+        list: List<Playlist>,
+        onOpen: (Playlist) -> Unit = {},
+        onCreate: (String) -> Unit = {},
+        onOpenSearch: () -> Unit = {},
+    ) {
         composeRule.setContent {
             RavMusicTheme {
                 PlaylistsScreen(
@@ -42,9 +47,18 @@ class PlaylistsScreenTest {
                     onOpenSettings = {},
                     onOpenPlaylist = onOpen,
                     onCreate = onCreate,
+                    onOpenSearch = onOpenSearch,
                 )
             }
         }
+    }
+
+    @Test
+    fun searchActionCallsBack() {
+        var searches = 0
+        set(playlists, onOpenSearch = { searches++ })
+        composeRule.onNodeWithTag("playlists_search").performClick()
+        assertEquals(1, searches)
     }
 
     @Test

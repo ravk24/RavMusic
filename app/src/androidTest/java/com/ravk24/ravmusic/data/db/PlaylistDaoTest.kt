@@ -98,6 +98,21 @@ class PlaylistDaoTest {
     }
 
     @Test
+    fun allTracksSpanPlaylistsInOrderAndFollowMovesAndDeletes() = runBlocking {
+        val a = repo.create("A")
+        val b = repo.create("B")
+        repo.addSongs(b, listOf(song(5), song(6)), skipDuplicates = false)
+        repo.addSongs(a, listOf(song(1)), skipDuplicates = false)
+        assertEquals(listOf(a to 1L, b to 5L, b to 6L), repo.allTracks.first().map { it.playlistId to it.mediaStoreId })
+
+        repo.move(b, 1, 0)
+        assertEquals(listOf(1L, 6L, 5L), repo.allTracks.first().map { it.mediaStoreId })
+
+        repo.delete(b)
+        assertEquals(listOf(1L), repo.allTracks.first().map { it.mediaStoreId })
+    }
+
+    @Test
     fun playlistsOrderedByCreation() = runBlocking {
         repo.create("B")
         repo.create("A")

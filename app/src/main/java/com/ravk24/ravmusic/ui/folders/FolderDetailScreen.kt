@@ -48,8 +48,11 @@ import com.ravk24.ravmusic.NoPlaylists
 import com.ravk24.ravmusic.PlaylistsHost
 import com.ravk24.ravmusic.data.model.Playlist
 import com.ravk24.ravmusic.data.model.Song
+import com.ravk24.ravmusic.data.model.matching
 import com.ravk24.ravmusic.ui.components.AppIcons
 import com.ravk24.ravmusic.ui.components.EmptyState
+import com.ravk24.ravmusic.ui.components.SearchEmpty
+import com.ravk24.ravmusic.ui.components.SearchTopBar
 import com.ravk24.ravmusic.ui.components.SongRow
 import com.ravk24.ravmusic.ui.components.songCountLabel
 import com.ravk24.ravmusic.ui.playlists.AddToPlaylistSheet
@@ -71,11 +74,16 @@ private sealed interface AddFlow {
     data class Duplicates(val playlist: Playlist, val count: Int) : AddFlow
 }
 
+/** Which bar sits at the top: selection wins over an open search, which wins over the title. */
+private enum class TopBarMode { Title, Search, Selection }
+
 /**
  * A folder's songs (design canvas artboard 1d). Browse mode: tap plays the folder from that song.
  * Long-press enters selection mode (the "VLC fix", spec F2): checkboxes, a contextual bar with the
  * count, "Select all", close, and "Add N to playlist ›" which runs the add flow against [playlists].
  * Selection is `rememberSaveable`, so it survives scrolling and rotation but not leaving the screen.
+ * The search action (change `search`) filters the rows by title or artist; selection, drag-select
+ * and "Select all" then work over the rows actually shown, and the query survives a selection.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,12 +98,27 @@ fun FolderDetailScreen(
 ) {
     var selectedIds by rememberSaveable { mutableStateOf(emptySet<Long>()) }
     val selecting = selectedIds.isNotEmpty()
+    var searching by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
     var addFlow by remember { mutableStateOf<AddFlow>(AddFlow.Idle) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val playlistList by playlists.playlists.collectAsStateWithLifecycle()
+    val shown = remember(songs, query) { songs.matching(query) }
+    val mode = when {
+        selecting -> TopBarMode.Selection
+        searching -> TopBarMode.Search
+        else -> TopBarMode.Title
+    }
 
+    fun closeSearch() {
+        searching = false
+        query = ""
+    }
+
+    // Back leaves selection first, then the search, then the screen.
     BackHandler(enabled = selecting) { selectedIds = emptySet() }
+    BackHandler(enabled = searching && !selecting) { closeSearch() }
 
     fun selectedSongs(): List<Song> = songs.filter { it.id in selectedIds }
 
@@ -125,22 +148,27 @@ fun FolderDetailScreen(
         topBar = {
             // The contextual bar slides down over the title bar and back up (design D7 of `polish`).
             AnimatedContent(
-                targetState = selecting,
+                targetState = mode,
                 transitionSpec = {
                     (fadeIn(tween(SELECTION_BAR_MS)) + slideInVertically(tween(SELECTION_BAR_MS)) { -it / 2 }) togetherWith
                         (fadeOut(tween(SELECTION_BAR_MS)) + slideOutVertically(tween(SELECTION_BAR_MS)) { -it / 2 })
                 },
-                label = "selection bar",
-            ) { inSelection ->
-            if (inSelection) {
-                SelectionBar(
+                label = "top bar",
+            ) { bar ->
+            when (bar) {
+                TopBarMode.Selection -> SelectionBar(
                     count = selectedIds.size,
-                    total = songs.size,
+                    total = shown.size,
                     onClose = { selectedIds = emptySet() },
-                    onSelectAll = { selectedIds = songs.mapTo(HashSet()) { it.id } },
+                    onSelectAll = { selectedIds = shown.mapTo(HashSet()) { it.id } },
                 )
-            } else {
-                TopAppBar(
+                TopBarMode.Search -> SearchTopBar(
+                    query = query,
+                    onQueryChange = { query = it },
+                    onClose = ::closeSearch,
+                    placeholder = "Search in folder",
+                )
+                TopBarMode.Title -> TopAppBar(
                     title = {
                         Column {
                             Text(
@@ -163,10 +191,18 @@ fun FolderDetailScreen(
                             Icon(imageVector = AppIcons.ArrowBack, contentDescription = "Back")
                         }
                     },
+                    actions = {
+                        if (songs.isNotEmpty()) {
+                            IconButton(onClick = { searching = true }, modifier = Modifier.testTag("folder_search")) {
+                                Icon(imageVector = AppIcons.Search, contentDescription = "Search")
+                            }
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background,
                         titleContentColor = MaterialTheme.colorScheme.onBackground,
                         navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                        actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                     ),
                 )
             }
@@ -205,9 +241,11 @@ fun FolderDetailScreen(
                     .testTag("folder_detail_empty"),
                 actionModifier = Modifier.testTag("folder_detail_empty_action"),
             )
+        } else if (shown.isEmpty()) {
+            SearchEmpty(query = query, modifier = Modifier.padding(padding))
         } else {
             val listState = rememberLazyListState()
-            val songIds = remember(songs) { songs.map { it.id } }
+            val songIds = remember(shown) { shown.map { it.id } }
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -221,7 +259,7 @@ fun FolderDetailScreen(
                     )
                     .testTag("songs_list"),
             ) {
-                items(songs, key = { it.id }, contentType = { "song" }) { song ->
+                items(shown, key = { it.id }, contentType = { "song" }) { song ->
                     val checked = song.id in selectedIds
                     SongRow(
                         song = song,

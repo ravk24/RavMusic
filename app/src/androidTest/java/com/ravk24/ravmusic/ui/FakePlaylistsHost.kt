@@ -14,17 +14,26 @@ class FakePlaylistsHost : PlaylistsHost {
 
     private val lists = MutableStateFlow<List<Playlist>>(emptyList())
     private val trackFlows = HashMap<Long, MutableStateFlow<List<PlaylistTrack>>>()
+    private val all = MutableStateFlow<List<PlaylistTrack>>(emptyList())
     private var nextId = 1L
 
     override val playlists: StateFlow<List<Playlist>> = lists
+
+    override val allTracks: StateFlow<List<PlaylistTrack>> = all
 
     private fun flowFor(id: Long) = trackFlows.getOrPut(id) { MutableStateFlow(emptyList()) }
 
     override fun tracks(playlistId: Long): StateFlow<List<PlaylistTrack>> = flowFor(playlistId)
 
+    /** Mirrors the Room query: every track, by playlist id then position. */
+    private fun refreshAll() {
+        all.value = trackFlows.entries.sortedBy { it.key }.flatMap { (_, flow) -> flow.value.sortedBy { it.position } }
+    }
+
     private fun refreshSummary(id: Long) {
         val t = flowFor(id).value
         lists.value = lists.value.map { if (it.id == id) it.copy(songCount = t.size, totalDurationMs = t.sumOf { x -> x.durationMs }) else it }
+        refreshAll()
     }
 
     fun seed(name: String, songs: List<Song> = emptyList()): Long {
@@ -44,6 +53,7 @@ class FakePlaylistsHost : PlaylistsHost {
     override fun delete(playlistId: Long) {
         lists.value = lists.value.filterNot { it.id == playlistId }
         trackFlows.remove(playlistId)
+        refreshAll()
     }
 
     override suspend fun duplicateCount(playlistId: Long, songs: List<Song>): Int =
@@ -70,6 +80,7 @@ class FakePlaylistsHost : PlaylistsHost {
     override fun move(playlistId: Long, from: Int, to: Int) {
         val flow = flowFor(playlistId)
         flow.value = moveItem(flow.value, from, to).mapIndexed { i, t -> t.copy(position = i) }
+        refreshAll()
     }
 
     override fun cleanUp(playlistId: Long, trackIds: Collection<Long>) {

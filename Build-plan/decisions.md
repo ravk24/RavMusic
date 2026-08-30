@@ -356,3 +356,34 @@ disagreed or were silent in six places. Resolved as follows.
 - **Decision:** The footer reads the version and "Built by Ravi Kant" in `onSurfaceVariant` (Slate on white,
   SlateDark on navy) instead of the privacy line in `outlineVariant`, which was a border tone and barely
   legible in dark mode. The no-`INTERNET` guarantee is unchanged and lives in the manifest and README.
+
+## 2026-08-30 — Open with and search (`openspec/changes/2026-08-30-open-with/`, `2026-08-30-search/`)
+
+### D-58 "Open with" plays just that file, and the shell decides when Now Playing opens
+- **Decision:** `MainActivity` registers `VIEW` (content/file, audio MIME types plus the `application/*`
+  aliases file managers use) and `SEND` (`audio/*`) filters; no web schemes, no multi-file share. The
+  intent is reduced to a pure `OpenRequest` held in `AppViewModel` (memory only: a recreation never
+  replays the file; `onNewIntent` handles a second file). `UriSongResolver` reuses a library song by
+  URI, else the MediaStore row (canonical `audio/media/<id>` URI so playlist rows still highlight),
+  else the provider's display name, else the file name; anything without a MediaStore row gets a
+  synthetic id `<= -2` so it can never match a library or playlist song. The queue is that one song,
+  origin "Opened file"; `AppNavigation` pushes `NowPlaying` only once the session reports the song
+  current (the screen pops itself while no queue is loaded). Not gated by the audio permission: the
+  system's per-file grant is enough. No `takePersistableUriPermission`, no `MediaMetadataRetriever`.
+- **Why:** The user asked for the app to appear in "Open with" and chose "play just that file"; the
+  rest is the smallest path that keeps `Song` pure, avoids a Now Playing race, and never lets a
+  fabricated id light up someone else's row.
+
+### D-59 One search rule and bar everywhere; filtering disables reordering; global search is a route
+- **Decision:** `matchesQuery` (trimmed, case-insensitive contains on title or artist, blank = all) is
+  the only matching rule; `SearchTopBar` swaps in for a screen's title bar with the same tags on every
+  screen. In a filtered playlist the drag handles disappear (positions in a filtered list would lie),
+  swipe-to-remove and tap-to-play keep working with indices mapped back to the full list, and Play /
+  Shuffle play still play the whole playlist. Folder detail has a three-way bar (title / search /
+  selection, selection wins) and selection works over the rows shown. Search across playlists is a
+  Nav3 route above `Playlists` (bottom bar hidden, query kept while a detail sits above it), fed by one
+  `observeAllTracks()` flow joined in memory with the playlist names; the detail's play logic became
+  `planPlaylistPlay`, shared with search hits.
+- **Why:** The user wanted both a per-playlist filter and a cross-playlist search; one rule and one bar
+  keep the three screens identical to learn and to test, and a route avoids special-casing the FAB,
+  grid scroll and bottom bar on the home screen.

@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.map
 interface PlaylistStore {
     val playlists: Flow<List<Playlist>>
     fun tracks(playlistId: Long): Flow<List<PlaylistTrack>>
+    /** Every track of every playlist, ordered by playlist then position (search across playlists). */
+    val allTracks: Flow<List<PlaylistTrack>>
     suspend fun create(name: String): Long
     suspend fun rename(playlistId: Long, name: String)
     suspend fun delete(playlistId: Long)
@@ -37,6 +39,9 @@ class PlaylistRepository(
 
     override fun tracks(playlistId: Long): Flow<List<PlaylistTrack>> =
         dao.observeTracks(playlistId).map { rows -> rows.map { it.toModel() } }
+
+    override val allTracks: Flow<List<PlaylistTrack>> =
+        dao.observeAllTracks().map { rows -> rows.map { it.toModel() } }
 
     override suspend fun create(name: String): Long {
         val now = clock()

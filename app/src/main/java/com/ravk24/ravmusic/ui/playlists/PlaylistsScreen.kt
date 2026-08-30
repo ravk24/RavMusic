@@ -61,6 +61,7 @@ fun PlaylistsScreen(
     onOpenPlaylist: (Playlist) -> Unit,
     onCreate: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenSearch: () -> Unit = {},
 ) {
     var showNewDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -91,6 +92,13 @@ fun PlaylistsScreen(
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .testTag("playlists_total"),
+                    )
+                }
+                IconButton(onClick = onOpenSearch, modifier = Modifier.testTag("playlists_search")) {
+                    Icon(
+                        imageVector = AppIcons.Search,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.onBackground,
                     )
                 }
                 Box {

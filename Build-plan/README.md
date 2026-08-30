@@ -25,6 +25,8 @@ The authoritative *machine-readable* plan for each phase lives in `openspec/chan
 | 6 | [Sleep timer](phases/06-sleep-timer.md) | `sleep-timer` | ✅ Done |
 | 7 | [Polish](phases/07-polish.md) — settings, missing files, empty states, motion, drag-select | `polish` | ✅ Done |
 | 8 | [Ship](phases/08-ship.md) — release build, sign, sideload | `release` | ✅ Done |
+| 9 | Open with — appear in Android's "Open with" / share sheet for audio files (1.1.0, D-58) | `open-with` | ✅ Done |
+| 10 | Search — filter in playlist / folder detail, search across all playlists (1.1.0, D-59) | `search` | ✅ Done |
 
 Each phase ends with something installable on the actual phone.
 

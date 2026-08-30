@@ -17,8 +17,12 @@ Built for one user and sideloaded; never intended for the Play Store.
   reorder by drag, swipe to remove, Shuffle play / Play, stored locally in Room.
 - **Now Playing** — full-screen player with seek, shuffle, repeat (off / all / one), and a queue sheet you
   can jump into and reorder.
-
-Coming next: sleep timer, settings (theme override, short-audio threshold), polish, signed release APK.
+- **Sleep timer** — presets, custom minutes or end of track; fades out, then pauses.
+- **Search** — filter a playlist or folder by title / artist, or search every playlist at once and play
+  a hit from its playlist.
+- **Open with** — pick RavMusic for any audio file in a file manager, download or share sheet; it plays
+  straight into Now Playing.
+- **Settings** — theme override, short-audio threshold, rescan. Sideloaded, signed release build.
 
 ## Screens
 
@@ -35,12 +39,14 @@ in [`Build-plan/`](Build-plan/README.md).
 | 3 Playback core — Media3 service, tap-to-play, mini player | `playback-core` | ✅ |
 | 4 Playlists — Room, multi-select, playlist home and detail | `playlists` | ✅ |
 | 5 Now Playing — full screen, seek, shuffle/repeat, queue | `now-playing` | ✅ |
-| 6 Sleep timer | `sleep-timer` | ⏳ |
-| 7 Polish — settings, empty states, missing-file handling, motion | `polish` | ⏳ |
-| 8 Ship — release build, local signing, sideload | `release` | ⏳ |
+| 6 Sleep timer | `sleep-timer` | ✅ |
+| 7 Polish — settings, empty states, missing-file handling, motion | `polish` | ✅ |
+| 8 Ship — release build, local signing, sideload | `release` | ✅ |
+| 9 Open with — audio files from file managers and share sheets (1.1.0) | `open-with` | ✅ |
+| 10 Search — filter in playlist / folder, search across playlists (1.1.0) | `search` | ✅ |
 
 Every phase ends installable and is verified with JVM tests, Compose/instrumented tests on API 36 and API 26
-emulators, and an adb walkthrough. Current totals: 66 JVM tests, 81 instrumented tests, all green on both APIs.
+emulators, and an adb walkthrough. Current totals (1.1.0): 111 JVM tests, 130 instrumented tests, all green on both APIs.
 
 ## Tech stack
 

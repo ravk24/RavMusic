@@ -6,7 +6,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.ravk24.ravmusic.data.model.Song
 import com.ravk24.ravmusic.ui.folders.FolderDetailScreen
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 import org.junit.Assert.assertEquals
@@ -71,6 +73,32 @@ class FolderDetailScreenTest {
         composeRule.onNodeWithTag("screen_folder_detail").assertIsDisplayed()
         composeRule.onNodeWithTag("folder_detail_back").performClick()
         assertEquals(1, backs)
+    }
+
+    @Test
+    fun searchFiltersSongsAndTapPlaysTheMatch() {
+        var played: Song? = null
+        val songs = FakeLibrary.snapshot().songsIn("music")
+        composeRule.setContent {
+            RavMusicTheme {
+                FolderDetailScreen(folderName = "Music", songs = songs, onBack = {}, onSongClick = { played = it })
+            }
+        }
+        composeRule.onNodeWithTag("folder_search").performClick()
+        composeRule.onNodeWithTag("search_field").performTextInput("glass")
+        composeRule.onNodeWithTag("song_row_1").assertDoesNotExist()
+        composeRule.onNodeWithTag("song_row_2").assertIsDisplayed()
+        composeRule.onNodeWithTag("song_row_2").performClick()
+        assertEquals(2L, played?.id)
+
+        composeRule.onNodeWithTag("search_field").performTextInput("zzz")
+        composeRule.onNodeWithTag("search_empty").assertIsDisplayed()
+        composeRule.onNodeWithText("No songs match “glasszzz”").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("search_close").performClick()
+        composeRule.onNodeWithTag("folder_detail_title").assertIsDisplayed()
+        composeRule.onNodeWithTag("song_row_1").assertIsDisplayed()
+        composeRule.onNodeWithTag("song_row_2").assertIsDisplayed()
     }
 
     @Test

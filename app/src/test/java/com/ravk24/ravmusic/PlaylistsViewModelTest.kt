@@ -12,6 +12,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -35,6 +36,8 @@ class PlaylistsViewModelTest {
 
         override val playlists: Flow<List<Playlist>> = lists
         override fun tracks(playlistId: Long): Flow<List<PlaylistTrack>> = trackMap.map { it[playlistId].orEmpty() }
+        override val allTracks: Flow<List<PlaylistTrack>> =
+            trackMap.map { m -> m.entries.sortedBy { it.key }.flatMap { (_, tracks) -> tracks } }
         override suspend fun create(name: String): Long {
             val id = nextId++
             lists.value = lists.value + Playlist(id, name.trim(), 0, 0L, id)
@@ -92,6 +95,19 @@ class PlaylistsViewModelTest {
 
         assertEquals(3, vm.addSongs(id, listOf(song(2), song(3), song(4)), skipDuplicates = false))
         assertEquals(7, store.trackMap.value[id]!!.size)
+        scope.cancel()
+    }
+
+    @Test
+    fun `allTracks mirrors every playlist in the store`() = runTest(dispatcher) {
+        val store = FakeStore()
+        val scope = vmScope()
+        val vm = PlaylistsViewModel(store, scope = scope)
+        val a = vm.create("A")
+        val b = vm.create("B")
+        vm.addSongs(b, listOf(song(5)), skipDuplicates = false)
+        vm.addSongs(a, listOf(song(1), song(2)), skipDuplicates = false)
+        assertEquals(listOf(1L, 2L, 5L), vm.allTracks.first { it.size == 3 }.map { it.mediaStoreId })
         scope.cancel()
     }
 

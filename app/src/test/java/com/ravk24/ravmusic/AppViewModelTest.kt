@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.ravk24.ravmusic.permission.PermissionChecker
 import com.ravk24.ravmusic.permission.PermissionState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class AppViewModelTest {
@@ -63,6 +64,28 @@ class AppViewModelTest {
         val restored = AppViewModel(handle)
         restored.refresh(FakeChecker(granted = false, rationale = false))
         assertEquals(PermissionState.Denied(canRequest = false), restored.permissionState.value)
+    }
+
+    @Test
+    fun `open requests are numbered and consumed by sequence`() {
+        val vm = AppViewModel(SavedStateHandle())
+        assertNull(vm.pendingOpen.value)
+
+        vm.submitOpen("content://a/1", "audio/mpeg")
+        val first = vm.pendingOpen.value!!
+        assertEquals("content://a/1", first.uri)
+        assertEquals("audio/mpeg", first.mimeType)
+
+        vm.submitOpen("content://a/2", null)
+        val second = vm.pendingOpen.value!!
+        assertEquals("content://a/2", second.uri)
+        assertEquals(first.seq + 1, second.seq)
+
+        // Consuming a stale request must not drop the newer one.
+        vm.consumeOpen(first.seq)
+        assertEquals(second, vm.pendingOpen.value)
+        vm.consumeOpen(second.seq)
+        assertNull(vm.pendingOpen.value)
     }
 
     @Test

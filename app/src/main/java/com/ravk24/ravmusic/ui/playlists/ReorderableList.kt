@@ -34,7 +34,8 @@ import com.ravk24.ravmusic.ui.components.SongRow
 /**
  * The one long-press-drag reorder implementation (design D-35 / Phase 5 D8), shared by the
  * playlist detail and the queue sheet. [itemContent] receives a `handle` modifier that must be
- * put on the element the user drags; the row itself keeps its own taps and swipes.
+ * put on the element the user drags; the row itself keeps its own taps and swipes. With
+ * [enabled] false the handle is inert (a filtered list cannot be reordered meaningfully).
  */
 @Composable
 fun <T : Any> ReorderableList(
@@ -43,6 +44,7 @@ fun <T : Any> ReorderableList(
     listState: LazyListState,
     onMove: (from: Int, to: Int) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     itemContent: @Composable (index: Int, item: T, handle: Modifier) -> Unit,
 ) {
     var draggingIndex by remember { mutableStateOf<Int?>(null) }
@@ -59,7 +61,7 @@ fun <T : Any> ReorderableList(
     LazyColumn(state = listState, modifier = modifier.fillMaxSize()) {
         itemsIndexed(items, key = { _, item -> key(item) }) { index, item ->
             val isDragging = draggingIndex == index
-            val handle = Modifier.pointerInput(key(item)) {
+            val handle = if (!enabled) Modifier else Modifier.pointerInput(key(item)) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = {
                         draggingIndex = index
@@ -97,7 +99,9 @@ fun <T : Any> ReorderableList(
 
 /**
  * The playlist's rows: [ReorderableList] plus a swipe-from-end-to-start remove on every row.
- * Missing rows are dimmed, the current one highlighted; row taps play ([onRowClick]).
+ * Missing rows are dimmed, the current one highlighted; row taps play ([onRowClick], the index
+ * within [tracks]). With [reorderEnabled] false (a filtered list) the drag handle is not shown at
+ * all; swipe-to-remove keeps working because it is keyed by track id, not position.
  */
 @Composable
 fun ReorderableTrackList(
@@ -109,6 +113,7 @@ fun ReorderableTrackList(
     onRemove: (trackId: Long) -> Unit,
     onMove: (from: Int, to: Int) -> Unit,
     modifier: Modifier = Modifier,
+    reorderEnabled: Boolean = true,
 ) {
     ReorderableList(
         items = tracks,
@@ -116,6 +121,7 @@ fun ReorderableTrackList(
         listState = listState,
         onMove = onMove,
         modifier = modifier.testTag("playlist_tracks"),
+        enabled = reorderEnabled,
     ) { index, track, handle ->
         val dismissState = rememberSwipeToDismissBoxState(
             confirmValueChange = { value ->
@@ -153,16 +159,20 @@ fun ReorderableTrackList(
                     isCurrent = nowPlayingId != null && track.mediaStoreId == nowPlayingId,
                     dimmed = track.id in missingIds,
                     modifier = Modifier.testTag("track_row_${track.id}"),
-                    leading = {
-                        Icon(
-                            imageVector = AppIcons.DragHandle,
-                            contentDescription = "Drag to reorder",
-                            tint = MaterialTheme.colorScheme.outlineVariant,
-                            modifier = Modifier
-                                .size(24.dp)
-                                .testTag("drag_handle_${track.id}")
-                                .then(handle),
-                        )
+                    leading = if (!reorderEnabled) {
+                        null
+                    } else {
+                        {
+                            Icon(
+                                imageVector = AppIcons.DragHandle,
+                                contentDescription = "Drag to reorder",
+                                tint = MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .testTag("drag_handle_${track.id}")
+                                    .then(handle),
+                            )
+                        }
                     },
                 )
             }

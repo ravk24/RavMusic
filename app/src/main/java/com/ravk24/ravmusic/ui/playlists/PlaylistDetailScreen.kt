@@ -1,5 +1,6 @@
 package com.ravk24.ravmusic.ui.playlists
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,8 +41,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ravk24.ravmusic.data.model.Playlist
 import com.ravk24.ravmusic.data.model.PlaylistTrack
+import com.ravk24.ravmusic.data.model.isFiltering
+import com.ravk24.ravmusic.data.model.matching
 import com.ravk24.ravmusic.ui.components.AppIcons
 import com.ravk24.ravmusic.ui.components.EmptyState
+import com.ravk24.ravmusic.ui.components.SearchEmpty
+import com.ravk24.ravmusic.ui.components.SearchTopBar
 import com.ravk24.ravmusic.ui.components.formatTotalDuration
 import com.ravk24.ravmusic.ui.components.songCountLabel
 import com.ravk24.ravmusic.ui.theme.RavMusicTheme
@@ -49,6 +54,9 @@ import com.ravk24.ravmusic.ui.theme.RavMusicTheme
 /**
  * Playlist detail (design canvas artboard 1e): name, totals, Shuffle play / Play, the
  * reorderable track list, and Rename / Delete in the overflow. Pushed above the tabs.
+ * The search action swaps the title bar for a filter (change `search`): rows are narrowed by
+ * title or artist, reordering is off while a filter is active (indices would lie), swipe-to-remove
+ * and tap-to-play keep working, and Play / Shuffle play still play the whole playlist.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,15 +79,33 @@ fun PlaylistDetailScreen(
     var menuOpen by remember { mutableStateOf(false) }
     var renaming by rememberSaveable { mutableStateOf(false) }
     var confirmingDelete by rememberSaveable { mutableStateOf(false) }
+    var searching by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
     val name = playlist?.name ?: "Playlist"
     val playable = tracks.size - tracks.count { it.id in missingIds }
+    val shown = remember(tracks, query) { tracks.matching(query) }
+    val filtering = isFiltering(query)
+
+    fun closeSearch() {
+        searching = false
+        query = ""
+    }
+
+    BackHandler(enabled = searching) { closeSearch() }
 
     Scaffold(
         modifier = modifier
             .fillMaxSize()
             .testTag("screen_playlist_detail"),
         topBar = {
-            TopAppBar(
+            if (searching) {
+                SearchTopBar(
+                    query = query,
+                    onQueryChange = { query = it },
+                    onClose = ::closeSearch,
+                    placeholder = "Search in playlist",
+                )
+            } else TopAppBar(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag("playlist_back")) {
@@ -87,6 +113,9 @@ fun PlaylistDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { searching = true }, modifier = Modifier.testTag("playlist_search")) {
+                        Icon(AppIcons.Search, contentDescription = "Search")
+                    }
                     Box {
                         IconButton(onClick = { menuOpen = true }, modifier = Modifier.testTag("playlist_menu")) {
                             Icon(AppIcons.MoreVert, contentDescription = "More options")
@@ -207,13 +236,17 @@ fun PlaylistDetailScreen(
                     modifier = Modifier.testTag("playlist_empty"),
                     actionModifier = Modifier.testTag("playlist_empty_action"),
                 )
+            } else if (shown.isEmpty()) {
+                SearchEmpty(query = query)
             } else {
                 ReorderableTrackList(
-                    tracks = tracks,
+                    tracks = shown,
                     missingIds = missingIds,
                     nowPlayingId = nowPlayingId,
                     listState = rememberLazyListState(),
-                    onRowClick = onPlay,
+                    reorderEnabled = !filtering,
+                    // The caller's index is into the full playlist; map it back from the shown row.
+                    onRowClick = { index -> onPlay(tracks.indexOf(shown[index])) },
                     onRemove = onRemoveTrack,
                     onMove = onMove,
                 )

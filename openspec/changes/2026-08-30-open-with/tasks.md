@@ -1,0 +1,16 @@
+## 1. Intent and model
+
+- [x] 1.1 Add the `VIEW` (content/file, audio MIME types) and `SEND` (audio/*) intent filters to `MainActivity` in `AndroidManifest.xml`; verify `adb shell cmd package query-activities -a android.intent.action.VIEW -t audio/mpeg -d content://x/y` and the `SEND` equivalent list `com.ravk24.ravmusic/.MainActivity`
+- [x] 1.2 Create `data/model/OpenedFile.kt` (`OpenRequest`, `openRequestUri`, `titleFromFileName`, `syntheticSongId`, `openedSong`, `OpenedFile`, `OPENED_FILE_ORIGIN`) and `pendingOpen` / `submitOpen` / `consumeOpen` on `AppViewModel`; verify `OpenedFileTest` (action mapping, clip fallbacks, extension stripping, unknown/numeric titles, ids ≤ -2) and the `AppViewModelTest` sequence test pass
+
+## 2. Resolution and playback
+
+- [x] 2.1 Create `data/mediastore/UriSongResolver.kt` (library match → MediaStore row → file path → display name → last segment, every provider call guarded) and add it to `AppContainer`; verify `UriSongResolverTest`: a library song is reused, a `file://` copy of the tone gets title `resolver_tone` and a synthetic id, an unknown provider URI falls back to the decoded last segment, and (API 29+) a row inserted into MediaStore resolves to its real id and canonical URI
+- [x] 2.2 `MainActivity` reads the intent on fresh launches and in `onNewIntent`; `AppRoot` resolves the pending request and hands an `OpenedFile` to `AppNavigation`, which plays it as a one-song "Opened file" queue and pushes `NowPlaying` once the session reports it current; verify `OpenWithNavigationTest` (play call, no premature push, Now Playing after the state catches up, no duplicate player, works with the permission denied) and `MediaItemMappingTest.syntheticNegativeIdRoundTrips`
+
+## 3. Integration and docs
+
+- [x] 3.1 Run `.\gradlew.bat assembleDebug testDebugUnitTest` and `connectedDebugAndroidTest` on the API 36 and API 26 emulators; verify `BUILD SUCCESSFUL`, every test passes, merged manifest still 0 hits for `INTERNET`
+- [x] 3.2 Manual walkthrough on API 36: `am start -a android.intent.action.VIEW -d content://media/external/audio/media/<id> -t audio/mpeg --grant-read-uri-permission com.ravk24.ravmusic` opens Now Playing with origin "Opened file"; a second id while the app runs replaces the song without stacking a screen; back shows Playlists with the mini player; Files → Audio → Open with lists RavMusic; with `READ_MEDIA_AUDIO` revoked the file still plays and back lands on the gate; note deviations here
+  — *2026-08-30, run on the API 26 emulator (the API 36 one was busy with the connected suite):* `cmd package query-activities` lists `com.ravk24.ravmusic/.MainActivity` for both `VIEW audio/*` and `SEND audio/*`; opening id 30 ("Beta Song") cold started the app straight onto Now Playing with the session in `state=3`; opening id 27 while running (`onNewIntent`, "its current task has been brought to the front") switched Now Playing to "alpha song", origin "Opened file", with one back press landing on the Playlists tab — which showed the permission gate, since the permission had never been granted on that emulator, together with the mini player still holding "alpha song". No deviations.
+- [x] 3.3 Update `Build-plan/decisions.md` (D-58) and `Build-plan/README.md`; commit on `main` and push; verify `git status` is clean

@@ -28,6 +28,8 @@ const val UNKNOWN_ARTIST_LABEL = "Unknown artist"
  * One song line (design canvas artboard 1d): title, artist or "Unknown artist", duration.
  * [isCurrent] highlights the song the player is on (exposed as `selected` for tests);
  * [dimmed] greys a song whose file is missing; [leading] hosts a checkbox or drag handle.
+ * [subtitle] replaces the artist line (search results say "Artist · Playlist") and [trailing]
+ * sits after the duration (an "open playlist" action).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -39,6 +41,8 @@ fun SongRow(
     dimmed: Boolean = false,
     onLongClick: (() -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
+    subtitle: String? = null,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -61,7 +65,7 @@ fun SongRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = song.artist ?: UNKNOWN_ARTIST_LABEL,
+                text = subtitle ?: song.artist ?: UNKNOWN_ARTIST_LABEL,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -74,6 +78,7 @@ fun SongRow(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        trailing?.invoke()
     }
 }
 

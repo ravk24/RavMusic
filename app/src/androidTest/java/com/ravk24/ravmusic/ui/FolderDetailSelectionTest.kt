@@ -92,6 +92,34 @@ class FolderDetailSelectionTest {
     }
 
     @Test
+    fun selectAllWhileFilteringSelectsShownOnlyAndBackKeepsTheQuery() {
+        set()
+        composeRule.onNodeWithTag("folder_search").performClick()
+        // "alpha song" and "Beta Song" match; "Glass Rain" (2) is hidden.
+        composeRule.onNodeWithTag("search_field").performTextInput("song")
+        composeRule.onNodeWithTag("song_row_2").assertDoesNotExist()
+
+        longPress(1)
+        composeRule.onNodeWithTag("selection_count").assertTextEquals("1 selected")
+        composeRule.onNodeWithText("Select all 2").assertIsDisplayed()
+        composeRule.onNodeWithTag("selection_all").performClick()
+        composeRule.onNodeWithTag("selection_count").assertTextEquals("2 selected")
+
+        // Back leaves selection first and returns to the search with its query intact...
+        Espresso.pressBack()
+        composeRule.onNodeWithTag("selection_bar").assertDoesNotExist()
+        composeRule.onNodeWithTag("search_bar").assertIsDisplayed()
+        composeRule.onNodeWithTag("song_row_2").assertDoesNotExist()
+        // ...then closes the search. The re-shown field takes focus and raises the keyboard, which
+        // would swallow the first back press on a device, so dismiss it first.
+        Espresso.closeSoftKeyboard()
+        Espresso.pressBack()
+        composeRule.onNodeWithTag("search_bar").assertDoesNotExist()
+        composeRule.onNodeWithTag("song_row_2").assertIsDisplayed()
+        composeRule.onNodeWithTag("screen_folder_detail").assertIsDisplayed()
+    }
+
+    @Test
     fun addToNewPlaylistCreatesAndConfirms() {
         set()
         longPress(1)

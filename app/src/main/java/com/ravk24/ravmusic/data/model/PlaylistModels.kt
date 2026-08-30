@@ -46,6 +46,22 @@ fun missingTrackIds(tracks: List<PlaylistTrack>, library: LibraryState): Set<Lon
     return tracks.filter { it.uri !in present }.mapTo(HashSet()) { it.id }
 }
 
+/** What playing a playlist hands to the player: the playable songs in playlist order and where to start. */
+data class PlaylistPlayPlan(val songs: List<Song>, val startIndex: Int)
+
+/**
+ * The one rule for playing a playlist (spec "Playing a playlist"), shared by the detail screen and
+ * search results: missing tracks are dropped, the queue starts at the first track whose URI is
+ * [tappedUri] (or at 0 when nothing / a missing track was tapped), and an all-missing or empty
+ * playlist gives null.
+ */
+fun planPlaylistPlay(tracks: List<PlaylistTrack>, missing: Set<Long>, tappedUri: String?): PlaylistPlayPlan? {
+    val songs = tracks.filter { it.id !in missing }.map { it.toSong() }
+    if (songs.isEmpty()) return null
+    val start = songs.indexOfFirst { it.uri == tappedUri }.coerceAtLeast(0)
+    return PlaylistPlayPlan(songs, start)
+}
+
 /** Songs already in the playlist (by URI) versus the ones that would be new. Order is preserved. */
 data class DuplicatePartition(val new: List<Song>, val duplicates: List<Song>)
 

@@ -27,6 +27,13 @@ data class FolderDetail(val folderId: String, val name: String) : NavKey
 @Serializable
 data class PlaylistDetail(val playlistId: Long) : NavKey
 
+/**
+ * Search across every playlist, pushed above the Playlists tab; hides the bottom navigation bar
+ * (the keyboard needs the room). A `PlaylistDetail` may be pushed above it from a result.
+ */
+@Serializable
+data object Search : NavKey
+
 /** The full-screen player, pushed above any screen; hides the bottom bar and the mini player. */
 @Serializable
 data object NowPlaying : NavKey

@@ -29,6 +29,13 @@ sleep timer is active. Regression test `NowPlayingScreenTest.shortScreen_keepsCh
 (Now Playing, mini player, playlist cards, playlist header, add-to-playlist sheet); the Settings footer now
 reads the version and "Built by Ravi Kant" in the secondary-text colour (D-57).
 
+**1.1.0 (versionCode 4), 2026-08-30:** two post-ship features, changes `open-with` and `search` (D-58, D-59).
+The app now appears in Android's "Open with" / share sheet for audio files and plays the chosen file as a
+one-song queue straight into Now Playing; playlist and folder detail gained a title/artist filter, and the
+Playlists home a search across every playlist (tap a hit to play that playlist from that song, or open it).
+Manifest adds `VIEW` / `SEND` intent filters only — still no `INTERNET`. `app/release/RavMusic-1.1.0.apk`,
+2,987,199 bytes (≈2.99 MB), same permissions as 1.0.2; 111 JVM + 130 instrumented tests green on API 36 and API 26.
+
 ## Goal
 A signed release APK on the phone, and a repeatable way to update it.
 

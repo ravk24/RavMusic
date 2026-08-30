@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -38,8 +39,11 @@ import androidx.navigation3.ui.NavDisplay
 import com.ravk24.ravmusic.NoSettings
 import com.ravk24.ravmusic.PlaylistsHost
 import com.ravk24.ravmusic.SettingsHost
-import com.ravk24.ravmusic.data.model.Song
+import com.ravk24.ravmusic.data.model.OPENED_FILE_ORIGIN
+import com.ravk24.ravmusic.data.model.OpenedFile
 import com.ravk24.ravmusic.data.model.missingTrackIds
+import com.ravk24.ravmusic.data.model.planPlaylistPlay
+import com.ravk24.ravmusic.data.model.searchPlaylists
 import com.ravk24.ravmusic.data.repo.LibraryState
 import com.ravk24.ravmusic.permission.PermissionState
 import com.ravk24.ravmusic.playback.PlayerActions
@@ -51,6 +55,7 @@ import com.ravk24.ravmusic.ui.nowplaying.NowPlayingScreen
 import com.ravk24.ravmusic.ui.permission.AudioPermissionGate
 import com.ravk24.ravmusic.ui.player.MiniPlayer
 import com.ravk24.ravmusic.ui.playlists.PlaylistDetailScreen
+import com.ravk24.ravmusic.ui.playlists.PlaylistSearchScreen
 import com.ravk24.ravmusic.ui.playlists.PlaylistsScreen
 import com.ravk24.ravmusic.ui.settings.SettingsScreen
 import kotlinx.coroutines.launch
@@ -61,7 +66,9 @@ import kotlinx.coroutines.launch
  *
  * Back-stack model: the stack is always `[Playlists]` or `[Playlists, Folders]`, optionally with
  * one detail screen on top — `Settings` above either tab, `PlaylistDetail` above Playlists,
- * `FolderDetail` above Folders — and `NowPlaying` above any of those. That gives
+ * `FolderDetail` above Folders, `Search` above Playlists with `PlaylistDetail` allowed above it —
+ * and `NowPlaying` above any of those (directly above `Playlists`
+ * when a file is opened from outside, see [openedFile]). That gives
  * the spec'd back behaviour for free: back from a detail returns to its tab, back from Folders
  * lands on Playlists, back from Playlists (stack size 1) leaves the app. Only tab roots show the
  * bottom bar; the mini player sits above it on every route while a queue is loaded.
@@ -70,6 +77,10 @@ import kotlinx.coroutines.launch
  * because that decorator discards an entry's state when the entry is popped — and switching
  * tabs pops. Library and player state are likewise passed in as values: they live in
  * Activity-scoped ViewModels.
+ *
+ * [openedFile] is a one-shot event: the shell plays it as a single-song queue, reports it
+ * handled through [onOpenedFileHandled], and opens Now Playing once the session confirms it is
+ * the current song.
  */
 @Composable
 fun AppNavigation(
@@ -83,6 +94,8 @@ fun AppNavigation(
     playlists: PlaylistsHost,
     modifier: Modifier = Modifier,
     settings: SettingsHost = NoSettings,
+    openedFile: OpenedFile? = null,
+    onOpenedFileHandled: () -> Unit = {},
 ) {
     val backStack = rememberNavBackStack(Playlists)
     val playlistsGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
@@ -97,6 +110,26 @@ fun AppNavigation(
         if (notice.seq <= shownSkipSeq) return@LaunchedEffect
         shownSkipSeq = notice.seq
         snackbar.showSnackbar("Couldn't play ${notice.title} — skipped")
+    }
+
+    // Open-with: play the file, then wait for the session to report it as the current song before
+    // showing Now Playing — that screen closes itself while no queue is loaded, so pushing it
+    // before the controller has caught up would pop it straight away. A file that cannot be
+    // played never becomes current: the queue is cleared, the skip notice above shows, and the
+    // pending id is simply overwritten by the next request.
+    var awaitingOpenId by rememberSaveable { mutableStateOf<Long?>(null) }
+    LaunchedEffect(openedFile?.seq) {
+        val opened = openedFile ?: return@LaunchedEffect
+        awaitingOpenId = opened.song.id
+        player.onPlaySongs(listOf(opened.song), 0, OPENED_FILE_ORIGIN)
+        onOpenedFileHandled()
+    }
+    LaunchedEffect(playerState.nowPlaying?.songId, awaitingOpenId) {
+        val id = awaitingOpenId ?: return@LaunchedEffect
+        if (playerState.nowPlaying?.songId == id && playerState.hasQueue) {
+            if (backStack.lastOrNull() != NowPlaying) backStack.add(NowPlaying)
+            awaitingOpenId = null
+        }
     }
 
     val current: NavKey = backStack.lastOrNull() ?: Playlists
@@ -191,6 +224,36 @@ fun AppNavigation(
                                 onOpenSettings = { backStack.add(Settings) },
                                 onOpenPlaylist = { backStack.add(PlaylistDetail(it.id)) },
                                 onCreate = { name -> scope.launch { playlists.create(name) } },
+                                onOpenSearch = { backStack.add(Search) },
+                            )
+                        }
+                    }
+                    entry<Search> {
+                        AudioPermissionGate(
+                            state = permissionState,
+                            onRequestPermission = onRequestPermission,
+                            onOpenAppSettings = onOpenAppSettings,
+                        ) {
+                            val list by playlists.playlists.collectAsStateWithLifecycle()
+                            val all by playlists.allTracks.collectAsStateWithLifecycle()
+                            // Entry-scoped saved state: the query survives rotation and a detail pushed above.
+                            var query by rememberSaveable { mutableStateOf("") }
+                            val hits = remember(list, all, query) { searchPlaylists(list, all, query) }
+                            val missing = remember(all, libraryState) { missingTrackIds(all, libraryState) }
+                            PlaylistSearchScreen(
+                                query = query,
+                                onQueryChange = { query = it },
+                                hits = hits,
+                                missingIds = missing,
+                                nowPlayingId = playerState.nowPlaying?.songId,
+                                onBack = { backStack.removeLastOrNull() },
+                                onPlayHit = { hit ->
+                                    val own = all.filter { it.playlistId == hit.track.playlistId }
+                                    planPlaylistPlay(own, missing, hit.track.uri)?.let { plan ->
+                                        player.onPlaySongs(plan.songs, plan.startIndex, hit.playlistName)
+                                    }
+                                },
+                                onOpenPlaylist = { backStack.add(PlaylistDetail(it)) },
                             )
                         }
                     }
@@ -234,7 +297,6 @@ fun AppNavigation(
                         val playlist = list.firstOrNull { it.id == key.playlistId }
                         val missing = remember(tracks, libraryState) { missingTrackIds(tracks, libraryState) }
                         val origin = playlist?.name ?: "Playlist"
-                        fun playable(): List<Song> = tracks.filter { it.id !in missing }.map { it.toSong() }
                         PlaylistDetailScreen(
                             playlist = playlist,
                             tracks = tracks,
@@ -242,12 +304,13 @@ fun AppNavigation(
                             nowPlayingId = playerState.nowPlaying?.songId,
                             onBack = { backStack.removeLastOrNull() },
                             onPlay = { index ->
-                                val queue = playable()
-                                val tapped = tracks.getOrNull(index)
-                                val start = queue.indexOfFirst { it.uri == tapped?.uri }.coerceAtLeast(0)
-                                if (queue.isNotEmpty()) player.onPlaySongs(queue, start, origin)
+                                planPlaylistPlay(tracks, missing, tracks.getOrNull(index)?.uri)?.let { plan ->
+                                    player.onPlaySongs(plan.songs, plan.startIndex, origin)
+                                }
                             },
-                            onShufflePlay = { playable().takeIf { it.isNotEmpty() }?.let { player.onShufflePlay(it, origin) } },
+                            onShufflePlay = {
+                                planPlaylistPlay(tracks, missing, null)?.let { plan -> player.onShufflePlay(plan.songs, origin) }
+                            },
                             onRename = { playlists.rename(key.playlistId, it) },
                             onDelete = {
                                 playlists.delete(key.playlistId)

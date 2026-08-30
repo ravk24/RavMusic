@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
@@ -139,6 +140,49 @@ class PlaylistDetailScreenTest {
         composeRule.onNodeWithTag("track_row_12").performTouchInput { swipeLeft() }
         composeRule.waitUntil(5_000) { calls.removed != null }
         assertEquals(12L, calls.removed)
+    }
+
+    @Test
+    fun searchFiltersRowsMapsTheIndexAndKeepsSwipe() {
+        val calls = set()
+        composeRule.onNodeWithTag("playlist_search").performClick()
+        composeRule.onNodeWithTag("search_field").performTextInput("glass")
+        composeRule.onNodeWithTag("track_row_11").assertDoesNotExist()
+        composeRule.onNodeWithTag("track_row_13").assertDoesNotExist()
+        composeRule.onNodeWithTag("track_row_12").assertIsDisplayed()
+        // No reordering while filtering: the handle is gone.
+        composeRule.onNodeWithTag("drag_handle_12", useUnmergedTree = true).assertDoesNotExist()
+
+        // The tap reports the index in the full playlist, not in the filtered list.
+        composeRule.onNodeWithTag("track_row_12").performClick()
+        assertEquals(1, calls.played)
+
+        composeRule.onNodeWithTag("track_row_12").performTouchInput { swipeLeft() }
+        composeRule.waitUntil(5_000) { calls.removed != null }
+        assertEquals(12L, calls.removed)
+    }
+
+    @Test
+    fun searchMatchesArtistShowsNoMatchAndClearsOrCloses() {
+        set()
+        composeRule.onNodeWithTag("playlist_search").performClick()
+        composeRule.onNodeWithTag("search_field").performTextInput("nocturne")
+        composeRule.onNodeWithTag("track_row_11").assertIsDisplayed()
+        composeRule.onNodeWithTag("track_row_12").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("search_clear").performClick()
+        composeRule.onNodeWithTag("track_row_12").assertIsDisplayed()
+        composeRule.onNodeWithTag("drag_handle_12", useUnmergedTree = true).assertIsDisplayed()
+
+        composeRule.onNodeWithTag("search_field").performTextInput("zzz")
+        composeRule.onNodeWithTag("search_empty").assertIsDisplayed()
+        composeRule.onNodeWithText("No songs match “zzz”").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("search_close").performClick()
+        composeRule.onNodeWithTag("search_bar").assertDoesNotExist()
+        composeRule.onNodeWithTag("playlist_menu").assertIsDisplayed()
+        composeRule.onNodeWithTag("track_row_11").assertIsDisplayed()
+        composeRule.onNodeWithTag("track_row_13").assertIsDisplayed()
     }
 
     @Test

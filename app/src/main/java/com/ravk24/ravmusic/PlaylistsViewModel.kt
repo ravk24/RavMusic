@@ -19,6 +19,8 @@ import kotlinx.coroutines.launch
 interface PlaylistsHost {
     val playlists: StateFlow<List<Playlist>>
     fun tracks(playlistId: Long): StateFlow<List<PlaylistTrack>>
+    /** Every track of every playlist, ordered by playlist then position (search across playlists). */
+    val allTracks: StateFlow<List<PlaylistTrack>>
     suspend fun create(name: String): Long
     fun rename(playlistId: Long, name: String)
     fun delete(playlistId: Long)
@@ -35,6 +37,7 @@ object NoPlaylists : PlaylistsHost {
     private val noTracks = kotlinx.coroutines.flow.MutableStateFlow<List<PlaylistTrack>>(emptyList())
     override val playlists: StateFlow<List<Playlist>> = none
     override fun tracks(playlistId: Long): StateFlow<List<PlaylistTrack>> = noTracks
+    override val allTracks: StateFlow<List<PlaylistTrack>> = noTracks
     override suspend fun create(name: String): Long = 0L
     override fun rename(playlistId: Long, name: String) = Unit
     override fun delete(playlistId: Long) = Unit
@@ -62,6 +65,9 @@ class PlaylistsViewModel(
         trackFlows.getOrPut(playlistId) {
             store.tracks(playlistId).stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
         }
+
+    override val allTracks: StateFlow<List<PlaylistTrack>> =
+        store.allTracks.stateIn(this.scope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     override suspend fun create(name: String): Long = store.create(name)
 

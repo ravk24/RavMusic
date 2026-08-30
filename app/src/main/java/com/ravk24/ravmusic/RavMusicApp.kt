@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.ravk24.ravmusic.data.db.RavMusicDatabase
 import com.ravk24.ravmusic.data.mediastore.MediaStoreScanner
+import com.ravk24.ravmusic.data.mediastore.UriSongResolver
 import com.ravk24.ravmusic.data.repo.LibraryRepository
 import com.ravk24.ravmusic.data.repo.PlaylistRepository
 import com.ravk24.ravmusic.data.settings.SettingsRepository
@@ -49,6 +50,9 @@ class AppContainer(context: Context) {
             minDurationMs = { settingsRepository.minDurationMs.first() },
         )
     }
+
+    /** Resolves a file opened from outside the app (`open-with`) into a playable song. */
+    val uriSongResolver: UriSongResolver by lazy { UriSongResolver(appContext.contentResolver) }
 
     /** The UI's client of the playback service. One per process; connected by the player ViewModel. */
     val playerConnection: PlayerConnection by lazy { PlayerConnection(appContext) }

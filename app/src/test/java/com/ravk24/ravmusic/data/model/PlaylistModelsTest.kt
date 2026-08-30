@@ -2,6 +2,7 @@ package com.ravk24.ravmusic.data.model
 
 import com.ravk24.ravmusic.data.repo.LibraryState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -34,6 +35,19 @@ class PlaylistModelsTest {
         val tracks = listOf(track(1L, 1L))
         assertTrue(missingTrackIds(tracks, LibraryState.Idle).isEmpty())
         assertTrue(missingTrackIds(tracks, LibraryState.Loading).isEmpty())
+    }
+
+    @Test
+    fun `planPlaylistPlay drops missing tracks and starts at the tapped uri`() {
+        val tracks = listOf(track(1L, 1L), track(2L, 2L), track(3L, 3L))
+        val plan = planPlaylistPlay(tracks, setOf(2L), "content://media/external/audio/media/3")!!
+        assertEquals(listOf(1L, 3L), plan.songs.map { it.id })
+        assertEquals(1, plan.startIndex)
+        // Tapping a missing track, or nothing, starts at the beginning.
+        assertEquals(0, planPlaylistPlay(tracks, setOf(2L), "content://media/external/audio/media/2")!!.startIndex)
+        assertEquals(0, planPlaylistPlay(tracks, emptySet(), null)!!.startIndex)
+        assertNull(planPlaylistPlay(tracks, setOf(1L, 2L, 3L), null))
+        assertNull(planPlaylistPlay(emptyList(), emptySet(), null))
     }
 
     @Test
