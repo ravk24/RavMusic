@@ -6,7 +6,7 @@ Selecting many songs quickly in a folder and adding them to a playlist — the "
 ## Requirements
 
 ### Requirement: Entering and leaving selection
-Long-pressing a song row in a folder detail SHALL enter selection mode with that song selected. Keeping the finger down after the long-press and dragging up or down the list SHALL select the contiguous range of rows between the long-pressed row and the row under the finger; dragging back towards the anchor SHALL shrink the range again, and rows selected before the drag SHALL stay selected. In selection mode every row SHALL show a checkbox, tapping a row SHALL toggle it, and the top bar SHALL be replaced by a contextual bar showing "N selected", a "Select all N" action and a close action; the swap between the two bars SHALL be animated. Closing the bar or pressing system back SHALL leave selection mode with nothing selected. Selection SHALL survive scrolling within the screen and SHALL NOT survive leaving the screen.
+Long-pressing a song row in a folder detail SHALL enter selection mode with that song selected. Keeping the finger down after the long-press and dragging up or down the list SHALL select the contiguous range of rows between the long-pressed row and the row under the finger; dragging back towards the anchor SHALL shrink the range again, and rows selected before the drag SHALL stay selected. In selection mode every row SHALL show a checkbox, tapping a row SHALL toggle it, and the top bar SHALL be replaced by a contextual bar showing "N selected", a "Select all N" action and a close action; the swap between the bars SHALL be animated. While a search filter is active, the range drag and "Select all N" SHALL apply to the rows shown, N SHALL be the number of rows shown, and the selection bar SHALL take precedence over the search bar; leaving selection SHALL return to the search with its text intact. Closing the bar or pressing system back SHALL leave selection mode with nothing selected. Selection SHALL survive scrolling within the screen and SHALL NOT survive leaving the screen.
 
 #### Scenario: Long-press starts a selection
 - **WHEN** the user long-presses "Beta Song"
@@ -39,6 +39,10 @@ Long-pressing a song row in a folder detail SHALL enter selection mode with that
 #### Scenario: Drag adds to an existing selection
 - **WHEN** row five is already selected and the user long-presses row one and drags to row two
 - **THEN** rows one, two and five are checked and the bar reads "3 selected"
+
+#### Scenario: Select all while filtering
+- **WHEN** a search filter shows 2 of a folder's 3 songs and the user long-presses one and taps "Select all 2"
+- **THEN** the bar reads "2 selected"; pressing back ends selection and shows the search bar with its text still typed, and pressing back again closes the search
 
 ### Requirement: Add to playlist
 Selection mode SHALL show a primary action "Add N to playlist ›". Tapping it SHALL open a sheet listing the existing playlists (name and song count) and a "New playlist" entry. Choosing a playlist SHALL add the selected songs to the end of it in the folder's display order; choosing "New playlist" SHALL ask for a name, create it and add the songs. After adding, selection mode SHALL end and a confirmation "Added N to <playlist>" SHALL be shown.
