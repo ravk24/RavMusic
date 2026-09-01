@@ -387,3 +387,24 @@ disagreed or were silent in six places. Resolved as follows.
 - **Why:** The user wanted both a per-playlist filter and a cross-playlist search; one rule and one bar
   keep the three screens identical to learn and to test, and a route avoids special-casing the FAB,
   grid scroll and bottom bar on the home screen.
+
+### D-60 Equalizer: audiofx on our own session id, DataStore drives the service
+- **Decision:** `android.media.audiofx` `Equalizer`/`BassBoost`/`Virtualizer` created eagerly (disabled)
+  in `PlaybackService` on a self-generated audio session id set on the player, recreated and re-applied
+  on `onAudioSessionIdChanged`; every HAL call sits behind try/catch so a flaky device degrades to a
+  disabled control instead of a crash. All state (`eq_enabled`, preset index with −1 = Custom,
+  comma-joined millibel band levels, 0–1000 strengths) lives in the existing Preferences DataStore
+  behind `EqualizerSettingsRepository`: the UI writes snapshots (conflated ~100 ms during drags), the
+  service collects the flow and applies — no session commands for state, unlike the sleep timer, since
+  nothing here is transient. Device capabilities (band count, centre freqs, level range, preset names
+  and per-preset shapes) travel over one `GET_CAPABILITIES` custom session command rather than
+  `sessionExtras`, which the sleep-timer collector already overwrites wholesale. Stored values are
+  fitted to whatever device applies them: out-of-range presets fall back to Custom, band-count
+  mismatches reset to flat, levels clamp to the device range. UI is `EqualizerSheet` (master switch,
+  preset chips, rotated vertical band sliders, strength sliders) off a Now Playing chip; the chip row
+  became a `FlowRow` so three chips wrap on narrow screens.
+- **Why:** DataStore-as-source-of-truth gives "applies on relaunch without opening the UI" for free and
+  keeps the service the only owner of effect objects; effects default off so a fresh install sounds
+  identical. Verified live on the API 26 AVD — both emulators ship NXP software effects, and
+  `dumpsys media.audio_flinger` showed the three-effect chain on our session — leaving only the by-ear
+  check on the real phone (tasks 4.2/4.3 annotated in the archived change).

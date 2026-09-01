@@ -93,6 +93,14 @@ object AppIcons {
 
     val ExpandMore: ImageVector by lazy { materialIcon("ExpandMore", "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z") }
 
+    /** Vertical level bars for the equalizer chip and sheet. */
+    val GraphicEq: ImageVector by lazy {
+        materialIcon(
+            "GraphicEq",
+            "M7 18h2V6H7v12zm4 4h2V2h-2v20zm-8-8h2v-4H3v4zm12 4h2V6h-2v12zm4-8v4h2v-4h-2z",
+        )
+    }
+
     /** Crescent moon for the sleep-timer chip. */
     val Bedtime: ImageVector by lazy {
         materialIcon("Bedtime", "M9.5 2c-1.82 0-3.53.5-5 1.35 2.99 1.73 5 4.95 5 8.65s-2.01 6.92-5 8.65C5.97 21.5 7.68 22 9.5 22c5.52 0 10-4.48 10-10S15.02 2 9.5 2z")

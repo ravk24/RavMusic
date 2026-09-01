@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * Must be used from the main thread (Media3 controllers are looper-bound).
  */
-class PlayerConnection(private val context: Context) : PlayerBridge {
+class PlayerConnection(private val context: Context) : PlayerBridge, EqualizerCapabilitiesSource {
 
     private val _state = MutableStateFlow(PlayerState())
     override val state: StateFlow<PlayerState> = _state.asStateFlow()
@@ -200,6 +200,23 @@ class PlayerConnection(private val context: Context) : PlayerBridge {
 
     override fun cancelSleepTimer() = withController { c ->
         c.sendCustomCommand(SessionCommand(SleepTimerCommands.CANCEL, Bundle.EMPTY), Bundle.EMPTY)
+    }
+
+    /** Asks the service what this device's audio effects can do (design D3 of `add-equalizer`). */
+    override fun request(onResult: (EqCapabilities?) -> Unit) = withController { c ->
+        val future = c.sendCustomCommand(SessionCommand(EqualizerCommands.GET_CAPABILITIES, Bundle.EMPTY), Bundle.EMPTY)
+        future.addListener(
+            {
+                val caps = try {
+                    EqualizerCommands.fromBundle(future.get().extras)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Equalizer capabilities request failed", e)
+                    null
+                }
+                onResult(caps)
+            },
+            ContextCompat.getMainExecutor(context),
+        )
     }
 
     override fun release() {

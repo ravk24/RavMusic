@@ -27,6 +27,7 @@ The authoritative *machine-readable* plan for each phase lives in `openspec/chan
 | 8 | [Ship](phases/08-ship.md) — release build, sign, sideload | `release` | ✅ Done |
 | 9 | Open with — appear in Android's "Open with" / share sheet for audio files (1.1.0, D-58) | `open-with` | ✅ Done |
 | 10 | Search — filter in playlist / folder detail, search across all playlists (1.1.0, D-59) | `search` | ✅ Done |
+| 11 | Equalizer — 5-band device EQ with presets, custom bands, bass boost, virtualizer (D-60) | `add-equalizer` | ✅ Done |
 
 Each phase ends with something installable on the actual phone.
 

@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -63,6 +65,7 @@ private val CHIP_ICON_DP = 14.dp
  * [state]; every control goes through [actions]. Runs a 250 ms position ticker while playing
  * (design D6) and hosts the queue sheet.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun NowPlayingScreen(
     state: PlayerState,
@@ -74,6 +77,7 @@ fun NowPlayingScreen(
     var scrub by remember { mutableStateOf<Float?>(null) }
     var queueOpen by rememberSaveable { mutableStateOf(false) }
     var sleepOpen by rememberSaveable { mutableStateOf(false) }
+    var equalizerOpen by rememberSaveable { mutableStateOf(false) }
 
     // Tick once a second while a countdown runs so the chip keeps counting even when paused.
     val timer = state.sleepTimer
@@ -253,7 +257,7 @@ fun NowPlayingScreen(
                 .heightIn(min = 16.dp),
         )
 
-        Row(
+        FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 12.dp),
@@ -296,7 +300,17 @@ fun NowPlayingScreen(
                 leadingIcon = { Icon(AppIcons.QueueMusic, contentDescription = null, modifier = Modifier.size(CHIP_ICON_DP)) },
                 modifier = Modifier.testTag("np_queue_chip"),
             )
+            AssistChip(
+                onClick = { equalizerOpen = true },
+                label = { Text("Equalizer", style = MaterialTheme.typography.labelMedium) },
+                leadingIcon = { Icon(AppIcons.GraphicEq, contentDescription = null, modifier = Modifier.size(CHIP_ICON_DP)) },
+                modifier = Modifier.testTag("np_eq_chip"),
+            )
         }
+    }
+
+    if (equalizerOpen) {
+        EqualizerSheet(onDismiss = { equalizerOpen = false })
     }
 
     if (sleepOpen) {

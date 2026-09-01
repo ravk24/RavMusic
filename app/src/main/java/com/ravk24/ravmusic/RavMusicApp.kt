@@ -10,6 +10,7 @@ import com.ravk24.ravmusic.data.mediastore.MediaStoreScanner
 import com.ravk24.ravmusic.data.mediastore.UriSongResolver
 import com.ravk24.ravmusic.data.repo.LibraryRepository
 import com.ravk24.ravmusic.data.repo.PlaylistRepository
+import com.ravk24.ravmusic.data.settings.EqualizerSettingsRepository
 import com.ravk24.ravmusic.data.settings.SettingsRepository
 import com.ravk24.ravmusic.playback.PlayerConnection
 import kotlinx.coroutines.flow.first
@@ -39,6 +40,9 @@ class AppContainer(context: Context) {
 
     /** Persisted preferences: theme override and the short-audio threshold. */
     val settingsRepository: SettingsRepository by lazy { SettingsRepository(appContext.settingsDataStore) }
+
+    /** Persisted equalizer state; written by the equalizer UI, applied by the playback service. */
+    val equalizerSettingsRepository: EqualizerSettingsRepository by lazy { EqualizerSettingsRepository(appContext.settingsDataStore) }
 
     /**
      * The in-memory library (last MediaStore query). App-scoped so it outlives screens and tabs.

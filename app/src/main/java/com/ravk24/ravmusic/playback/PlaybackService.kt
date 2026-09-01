@@ -2,6 +2,7 @@ package com.ravk24.ravmusic.playback
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
@@ -11,6 +12,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSession.ConnectionResult
 import androidx.media3.session.MediaSessionService
@@ -19,10 +21,12 @@ import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.ravk24.ravmusic.MainActivity
+import com.ravk24.ravmusic.RavMusicApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -36,6 +40,7 @@ class PlaybackService : MediaSessionService() {
     private var session: MediaSession? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var sleepTimer: SleepTimerEngine? = null
+    private var effects: AudioEffects? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -51,6 +56,23 @@ class PlaybackService : MediaSessionService() {
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .build()
         player.addListener(MissingFileSkipper(player) { session })
+
+        // The equalizer (design D1/D2 of `add-equalizer`): a session id of our own lets the
+        // effects attach before the first song, and DataStore drives them from then on. If the
+        // player ever renews the id the effects silently detach, so recreate and re-apply.
+        val equalizerSettings = (application as RavMusicApp).container.equalizerSettingsRepository
+        player.audioSessionId = (getSystemService(AUDIO_SERVICE) as AudioManager).generateAudioSessionId()
+        effects = AudioEffects.create(player.audioSessionId)
+        player.addAnalyticsListener(object : AnalyticsListener {
+            override fun onAudioSessionIdChanged(eventTime: AnalyticsListener.EventTime, audioSessionId: Int) {
+                effects?.release()
+                effects = AudioEffects.create(audioSessionId)
+                scope.launch { effects?.apply(equalizerSettings.settings.first()) }
+            }
+        })
+        scope.launch {
+            equalizerSettings.settings.collect { snapshot -> effects?.apply(snapshot) }
+        }
 
         val engine = SleepTimerEngine(
             actions = object : SleepTimerActions {
@@ -82,7 +104,7 @@ class PlaybackService : MediaSessionService() {
         )
         val built = MediaSession.Builder(this, player)
             .setSessionActivity(openApp)
-            .setCallback(SleepTimerCallback(engine))
+            .setCallback(SessionCallback(engine) { effects?.capabilities ?: EqCapabilities() })
             .build()
         session = built
 
@@ -104,6 +126,8 @@ class PlaybackService : MediaSessionService() {
     override fun onDestroy() {
         sleepTimer?.cancel()
         scope.cancel()
+        effects?.release()
+        effects = null
         session?.run {
             player.release()
             release()
@@ -112,11 +136,18 @@ class PlaybackService : MediaSessionService() {
         super.onDestroy()
     }
 
-    /** Advertises the sleep-timer commands to every controller and routes them to the engine. */
-    private class SleepTimerCallback(private val engine: SleepTimerEngine) : MediaSession.Callback {
+    /** Advertises the custom commands (sleep timer, equalizer capabilities) and routes them. */
+    private class SessionCallback(
+        private val engine: SleepTimerEngine,
+        private val capabilities: () -> EqCapabilities,
+    ) : MediaSession.Callback {
 
-        private val commands = listOf(SleepTimerCommands.SET, SleepTimerCommands.EXTEND, SleepTimerCommands.CANCEL)
-            .map { SessionCommand(it, Bundle.EMPTY) }
+        private val commands = listOf(
+            SleepTimerCommands.SET,
+            SleepTimerCommands.EXTEND,
+            SleepTimerCommands.CANCEL,
+            EqualizerCommands.GET_CAPABILITIES,
+        ).map { SessionCommand(it, Bundle.EMPTY) }
 
         override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): ConnectionResult {
             val available = ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
@@ -143,6 +174,9 @@ class PlaybackService : MediaSessionService() {
                 }
                 SleepTimerCommands.EXTEND -> engine.extend(args.getLong(SleepTimerCommands.ARG_EXTRA_MS, SLEEP_EXTEND_MS))
                 SleepTimerCommands.CANCEL -> engine.cancel()
+                EqualizerCommands.GET_CAPABILITIES -> return Futures.immediateFuture(
+                    SessionResult(SessionResult.RESULT_SUCCESS, EqualizerCommands.toBundle(capabilities())),
+                )
                 else -> return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED))
             }
             return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
